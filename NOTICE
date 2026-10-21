@@ -1,0 +1,146 @@
+C.A.S.S.I.E. Voice LoRA
+CustomVoice · C.A.S.S.I.E. v1 · s0.3
+
+License scope
+=============
+
+Project-specific code, configuration, metadata, WebUI and original documentation
+are licensed under Apache License 2.0; see LICENSE. Existing third-party notices
+and licenses remain applicable to the material they cover.
+
+The SCP Foundation logo graphic embedded in web/index.html is excluded from
+that Apache-2.0 grant and remains under CC BY-SA 3.0; see the logo credit below.
+
+The source repository contains inference/export code, the WebUI, adapter
+configuration and weight metadata. The two weight files are distributed
+separately as GitHub Release assets and are not tracked by Git:
+  https://github.com/MiaoXiyuan/C.A.S.S.I.E.-TTS/releases
+Training, dataset processing and evaluation tools are not included.
+
+The following two weight files are licensed under Creative Commons
+Attribution-ShareAlike 3.0 Unported (SPDX: CC-BY-SA-3.0); see LICENSE-WEIGHTS.
+The paths below are their required local locations after downloading the
+corresponding Release assets:
+
+  lora/adapter/adapter_model.safetensors
+  lora/speaker_embedding.safetensors
+
+This grant covers the rights that this project's contributors can license in
+their weight contributions. It does not relicense Qwen base models, third-party
+code, source recordings, or other upstream material. Files under lora/ other
+than the two weight files above follow their stated code/documentation license.
+
+Suggested attribution for the released weights:
+  CustomVoice · C.A.S.S.I.E. v1 · s0.3, by the C.A.S.S.I.E. Voice LoRA
+  contributors, CC BY-SA 3.0. Fine-tuned from Qwen3-TTS using C.A.S.S.I.E.
+  recordings obtained through Convex89524/C.A.S.S.I.E; upstream credits below.
+
+This suggested wording does not add conditions to either license. Redistributors
+should retain applicable attribution, license references and modification notices
+as required by the license governing the material they distribute.
+
+Qwen3-TTS
+=========
+
+Source: https://github.com/QwenLM/Qwen3-TTS
+Reference revision: 022e286b98fbec7e1e916cb940cdf532cd9f488e
+License: Apache-2.0; upstream copy: licenses/Qwen3-TTS-Apache-2.0.txt
+
+Retained upstream notices:
+  Copyright 2026 The Alibaba Qwen team.
+  Copyright 2026 Alibaba Cloud
+
+The released adapter was trained from Qwen3-TTS. The historical training process
+used the official dataset/SFT workflow and the community corrections credited
+below. Those local training and data-processing implementations are not part of
+this inference-only release. The retained upstream license and notices document
+the provenance of the released weights.
+
+Historical upstream training references:
+  https://github.com/QwenLM/Qwen3-TTS/blob/022e286b98fbec7e1e916cb940cdf532cd9f488e/finetuning/dataset.py
+  https://github.com/QwenLM/Qwen3-TTS/blob/022e286b98fbec7e1e916cb940cdf532cd9f488e/finetuning/sft_12hz.py
+  https://github.com/QwenLM/Qwen3-TTS/blob/022e286b98fbec7e1e916cb940cdf532cd9f488e/finetuning/prepare_data.py
+
+Base model, downloaded separately by the user for local export and inference:
+  https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base
+
+Historical training tokenizer reference:
+  https://huggingface.co/Qwen/Qwen3-TTS-Tokenizer-12Hz
+The official model cards declare Apache-2.0. Neither model is distributed in
+this release; the local merged CustomVoice export is not distributed either.
+
+Historical community training corrections
+=========================================
+
+Source: https://github.com/instavar/qwen3-tts-lora-finetuning
+License: Apache-2.0; upstream copy: licenses/Instavar-Apache-2.0.txt
+Patch: https://github.com/instavar/qwen3-tts-lora-finetuning/blob/main/patches/0001-qwen3-tts-lora.patch
+
+Credit to Instavar and the project's contributors for the corrected text
+projection, manual codec-0 loss and next-token sub-talker alignment referenced
+during training of the released adapter. This is a historical provenance credit;
+the patch and local training implementations are not included in this package.
+The upstream license copy and Qwen notices remain available for that provenance.
+
+C.A.S.S.I.E. tool and training-audio provenance
+==============================================
+
+Source: https://github.com/Convex89524/C.A.S.S.I.E
+Tool: C.A.S.S.I.E Sentence Builder
+Tool-code license: MIT; upstream copy: licenses/CASSIE-MIT.txt
+Retained upstream notice: Copyright © 2025-2029 Convex89524
+
+The training audio was obtained from the cassie.data archive used by that
+project and was assembled into training utterances. The released adapter was
+fine-tuned on those utterances; the speaker embedding was extracted from a
+reference utterance assembled from the same source. The tool's compiled
+programs, audio archive, source recordings and training utterances are not
+included in this release. The MIT license of the tool code is not a license
+grant for the recordings or this project's weights.
+
+SCP: Secret Laboratory and its C.A.S.S.I.E. recordings originate from Northwood
+Studios and the relevant creators/rightsholders. The official C.A.S.S.I.E.
+documentation credits Narlor for the main voice and Welk for additional clips:
+  https://en.scpslgame.com/index.php?title=C.A.S.S.I.E.
+
+The SCP Foundation setting is credited to the SCP Wiki and its contributing
+authors. Community licensing reference:
+  https://scp-wiki.wikidot.com/
+  https://scp-wiki.wikidot.com/licensing-guide
+
+Recording-rights references, separate from the software licenses above:
+  https://store.steampowered.com/eula/700330_eula_0
+  https://github.com/Convex89524/C.A.S.S.I.E/blob/master/README.md
+
+This attribution does not claim to relicense source recordings or to resolve
+rights beyond those granted by their respective rightsholders. No base models,
+training audio, training datasets or original game resources are distributed.
+
+SCP Foundation logo in the WebUI
+===============================
+
+Work: header-logo.svg
+Version author: Dr_Grom, as credited by the SCP Wiki
+Source: SCP Wiki / Grombald Common-Theme
+  https://scp-wiki.wikidot.com/
+  https://github.com/Grombald/Common-Theme/blob/27f25355852ff8eaf497da8443a91844a10f6d7e/docs/svg/header-logo.svg
+License: Creative Commons Attribution-ShareAlike 3.0 Unported (CC-BY-SA-3.0)
+  https://creativecommons.org/licenses/by-sa/3.0/
+
+The SVG artwork is embedded locally in web/index.html for the header and the
+browser tab icon (favicon). Its geometry and colors
+are unchanged; accessibility labels and CSS display sizing were added. The
+graphic retains its CC BY-SA 3.0 license; the project's independent code remains
+under Apache-2.0. Use of the logo does not imply SCP Wiki endorsement.
+
+No affiliation or endorsement
+============================
+
+This is an independent community project. Qwen/Alibaba Cloud, Northwood Studios,
+the SCP Wiki, the tool authors and the credited voice performers have not been
+represented as endorsing this release. Their names identify sources and credits;
+this notice does not grant trademark, publicity, personality or other rights
+outside the applicable licenses.
+
+Runtime dependencies remain under their respective upstream licenses. This
+release provides dependency requirements and does not bundle their packages.

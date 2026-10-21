@@ -1,0 +1,35 @@
+# Base models and bundled speech tokenizers are downloaded by the user.
+models/
+
+# Model weights distributed via GitHub Releases.
+/lora/adapter/adapter_model.safetensors
+/lora/speaker_embedding.safetensors
+
+# Source audio, datasets and game assets are never part of this release.
+data/
+sources/
+cache/
+
+# Exported CustomVoice models, generated WAVs, logs.
+outputs/
+
+# Local verification artifacts and scratch tests.
+test/
+scratch/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp

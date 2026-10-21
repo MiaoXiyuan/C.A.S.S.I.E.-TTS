@@ -1,0 +1,528 @@
+<!--
+  C.A.S.S.I.E. WebUI (public release)
+  Public package / WebUI version: V1.0.0
+  Data interface:
+    GET /api/status -> model status and sampling defaults
+    POST /api/generate JSON {text, model, language, instruct, sampling...,
+      output_f0} -> audio/wav
+    GET /api/audio/<name> -> retained WAV download
+    X-Audio-URL: download URL; X-Output: relative path used only for filename.
+    X-Duration / X-Elapsed / X-Seed: result metadata.
+  Served by scripts/serve_custom_voice.py; API URLs use the current origin.
+  Only v1_s03 is supported. Internal paths/device metadata are not rendered.
+  Prompt and output F0 are disabled by default.
+-->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>C.A.S.S.I.E. · V1.0.0 · 语音生成</title>
+  <!-- Same SCP artwork and CC-BY-SA-3.0 attribution as the header; see NOTICE. -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4KPHRpdGxlPlNDUCDln7rph5HkvJrmoIflv5c8L3RpdGxlPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJiIiB4MT0iLTUyMC4yMSIgeDI9Ii01MDMuMzUiIHkxPSItNTQyLjU4IiB5Mj0iLTUxOS4yNCIgZ3JhZGllbnRUcmFuc2Zvcm09Im1hdHJpeCgxIDAgMCAxIDU0NSA1NTMuODEpIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3Atb3BhY2l0eT0iLjM2NDcxIiBvZmZzZXQ9IjAiLz4KPHN0b3Agc3RvcC1vcGFjaXR5PSIuMjcwNTkiIG9mZnNldD0iMSIvPgo8L2xpbmVhckdyYWRpZW50Pgo8bGluZWFyR3JhZGllbnQgaWQ9ImMiIHgxPSItNDc4Ljc4IiB4Mj0iLTQ1NC43NiIgeTE9Ii01NDAuNjgiIHkyPSItNDk5LjA3IiBncmFkaWVudFRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIDEgNTQ1IDU1My44MSkiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1vcGFjaXR5PSIuMTQ5MDIiIG9mZnNldD0iMCIvPgo8c3RvcCBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4wNjY2NjciIG9mZnNldD0iMSIvPgo8L2xpbmVhckdyYWRpZW50Pgo8bGluZWFyR3JhZGllbnQgaWQ9ImQiIHgxPSItNTI3LjYzIiB4Mj0iLTQ2MS44NCIgeTE9Ii00NzguMjEiIHkyPSItNDY4LjU2IiBncmFkaWVudFRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIDEgNTQ1IDU1My44MSkiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KPHN0b3Agc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIuMTQ5MDIiIG9mZnNldD0iMCIvPgo8c3RvcCBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii4xNjQ3MSIgb2Zmc2V0PSIxIi8+CjwvbGluZWFyR3JhZGllbnQ+CjxsaW5lYXJHcmFkaWVudCBpZD0iYSIgeDE9IjUwIiB4Mj0iNTAiIHkxPSI5MC43NTIiIHkyPSI0LjM3ODMiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoMSAwIDAgMSAuMDAwNDk4NjIgNGUtNCkiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4bGluazpocmVmPSIjZSIvPgo8bGluZWFyR3JhZGllbnQgaWQ9ImUiPgo8c3RvcCBzdG9wLWNvbG9yPSIjZGVkY2MzIiBvZmZzZXQ9IjAiLz4KPHN0b3Agc3RvcC1jb2xvcj0iI2ZmZiIgb2Zmc2V0PSIxIi8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHBhdGggZD0ibTM3LjM3OCA1LjQ0MzYtMi4zMjY1IDguNjgyMmMtMTguMDMyIDcuMzkyLTI2LjMwOCAyNC40LTIzLjc4NyA0MS4yMDFsLTYuMzU2MiA2LjM1NjIgMTIuNjIyIDIxLjg2MiA4LjY4MjItMi4zMjY1YzYuODI0IDUuMjM3MiAxNS4xODYgOC4wNzYgMjMuNzg4IDguMDc2IDguNjAyMSA1ZS01IDE2Ljk2NC0yLjgzODggMjMuNzg4LTguMDc2bDguNjgyMiAyLjMyNjUgMTIuNjIyLTIxLjg2Mi02LjM1NjItNi4zNTU3YzMuMjE4NS0xOS4zNjItMTAuODc2LTM2LjUzLTIzLjc4Ny00MS4yMDJsLTIuMzI2NS04LjY4MjJ6IiBmaWxsPSIjMWExYTFhIiBmaWxsLW9wYWNpdHk9Ii42Ii8+CjxwYXRoIGQ9Im02NS40MjQgMS43OTNoLTMwLjg0NmwtMi42MzI4IDkuODI0MmMtMTQuOTU0IDYuOTk3Mi0yNC42NjYgMjEuOTgzLTI0LjY2NiAzOC42MDcgMCAxLjIzMTggMC4xMzM5IDIuNDU3IDAuMjQwMiAzLjY4MzZsMy43NDQ3IDEuNDE4OWMtMy4yODQxLTE5Ljk3MSAxMS4wNTctMzcuNzMzIDIzLjc4Ny00MS4yMDFsMi4zMjY1LTguNjgyMmgyNS4yNDV6IiBjb2xvcj0iIzAwMDAwMCIgY29sb3ItcmVuZGVyaW5nPSJhdXRvIiBkb21pbmFudC1iYXNlbGluZT0iYXV0byIgZmlsbD0idXJsKCNiKSIgaW1hZ2UtcmVuZGVyaW5nPSJhdXRvIiBzaGFwZS1yZW5kZXJpbmc9ImF1dG8iIHNvbGlkLWNvbG9yPSIjMDAwMDAwIiBzdG9wLWNvbG9yPSIjMDAwMDAwIiBzdHlsZT0iZm9udC1mZWF0dXJlLXNldHRpbmdzOm5vcm1hbDtmb250LXZhcmlhbnQtYWx0ZXJuYXRlczpub3JtYWw7Zm9udC12YXJpYW50LWNhcHM6bm9ybWFsO2ZvbnQtdmFyaWFudC1lYXN0LWFzaWFuOm5vcm1hbDtmb250LXZhcmlhbnQtbGlnYXR1cmVzOm5vcm1hbDtmb250LXZhcmlhbnQtbnVtZXJpYzpub3JtYWw7Zm9udC12YXJpYW50LXBvc2l0aW9uOm5vcm1hbDtmb250LXZhcmlhdGlvbi1zZXR0aW5nczpub3JtYWw7aW5saW5lLXNpemU6MDtpc29sYXRpb246YXV0bzttaXgtYmxlbmQtbW9kZTpub3JtYWw7c2hhcGUtbWFyZ2luOjA7c2hhcGUtcGFkZGluZzowO3RleHQtZGVjb3JhdGlvbi1jb2xvcjojMDAwMDAwO3RleHQtZGVjb3JhdGlvbi1saW5lOm5vbmU7dGV4dC1kZWNvcmF0aW9uLXN0eWxlOnNvbGlkO3RleHQtaW5kZW50OjA7dGV4dC1vcmllbnRhdGlvbjptaXhlZDt0ZXh0LXRyYW5zZm9ybTpub25lO3doaXRlLXNwYWNlOm5vcm1hbCIvPgo8cGF0aCBkPSJtNjIuNjIzIDUuNDQzNiAyLjMyNjUgOC42ODIyIDMuMTA1OC0yLjUwODYtMi42MzA5LTkuODI0MnoiIGZpbGwtb3BhY2l0eT0iLjA3NDUxIi8+CjxwYXRoIGQ9Im05NS4wOTMgNjEuNjgzLTYuMzU2Mi02LjM1NTcgMy43NDQzLTEuNDE5NCA3LjE3MzggNy4xNzM4eiIgZmlsbC1vcGFjaXR5PSIuMDgyMzUzIi8+CjxwYXRoIGQ9Im0wLjM0NiA2MS4wODIgNy4xNzM4LTcuMTczOCAzLjc0NDcgMS40MTg5LTYuMzU2MiA2LjM1NjJ6IiBmaWxsLW9wYWNpdHk9Ii4zMjE1NyIvPgo8cGF0aCBkPSJtMC4zNDYgNjEuMDgyIDQuNTYyMyAwLjYwMTI0IDEyLjYyMiAyMS44NjItMS43NjA3IDQuMjQ5N3oiIGZpbGwtb3BhY2l0eT0iLjExNzY1Ii8+CjxwYXRoIGQ9Im05Mi40ODEgNTMuOTA4YzAuMTA2My0xLjIyNjcgMC4yNDAyLTIuNDUxNyAwLjI0MDItMy42ODM2IDAtMTYuNjI0LTkuNzExNy0zMS42MS0yNC42NjYtMzguNjA3bC0zLjEwNTggMi41MDg2YzE3LjE4NCA1LjgwMzEgMjcuMTg1IDI4LjE0IDIzLjc4NyA0MS4yMDJ6IiBjb2xvcj0iIzAwMDAwMCIgY29sb3ItcmVuZGVyaW5nPSJhdXRvIiBkb21pbmFudC1iYXNlbGluZT0iYXV0byIgZmlsbD0idXJsKCNjKSIgaW1hZ2UtcmVuZGVyaW5nPSJhdXRvIiBzaGFwZS1yZW5kZXJpbmc9ImF1dG8iIHNvbGlkLWNvbG9yPSIjMDAwMDAwIiBzdG9wLWNvbG9yPSIjMDAwMDAwIiBzdHlsZT0iZm9udC1mZWF0dXJlLXNldHRpbmdzOm5vcm1hbDtmb250LXZhcmlhbnQtYWx0ZXJuYXRlczpub3JtYWw7Zm9udC12YXJpYW50LWNhcHM6bm9ybWFsO2ZvbnQtdmFyaWFudC1lYXN0LWFzaWFuOm5vcm1hbDtmb250LXZhcmlhbnQtbGlnYXR1cmVzOm5vcm1hbDtmb250LXZhcmlhbnQtbnVtZXJpYzpub3JtYWw7Zm9udC12YXJpYW50LXBvc2l0aW9uOm5vcm1hbDtmb250LXZhcmlhdGlvbi1zZXR0aW5nczpub3JtYWw7aW5saW5lLXNpemU6MDtpc29sYXRpb246YXV0bzttaXgtYmxlbmQtbW9kZTpub3JtYWw7c2hhcGUtbWFyZ2luOjA7c2hhcGUtcGFkZGluZzowO3RleHQtZGVjb3JhdGlvbi1jb2xvcjojMDAwMDAwO3RleHQtZGVjb3JhdGlvbi1saW5lOm5vbmU7dGV4dC1kZWNvcmF0aW9uLXN0eWxlOnNvbGlkO3RleHQtaW5kZW50OjA7dGV4dC1vcmllbnRhdGlvbjptaXhlZDt0ZXh0LXRyYW5zZm9ybTpub25lO3doaXRlLXNwYWNlOm5vcm1hbCIvPgo8cGF0aCBkPSJtOTUuMDkzIDYxLjY4My0xMi42MjIgMjEuODYyLTguNjgyMi0yLjMyNjVjLTEzLjAyNSAxMi41MDEtMzguOTEzIDkuNjkyNC00Ny41NzYgMGwtOC42ODIyIDIuMzI2NS0xLjc2MDcgNC4yNDk3IDkuODQxOC0yLjYzNjdjNy4xNTcxIDQuOTk0IDE1LjYzMSA3Ljc4NzIgMjQuMzg5IDcuNzg3MSA4Ljc1NzkgNWUtNSAxNy4yMzItMi43OTMxIDI0LjM4OS03Ljc4NzFsOS44NDE4IDIuNjM2NyAxNS40MjQtMjYuNzEzeiIgY29sb3I9IiMwMDAwMDAiIGNvbG9yLXJlbmRlcmluZz0iYXV0byIgZG9taW5hbnQtYmFzZWxpbmU9ImF1dG8iIGZpbGw9InVybCgjZCkiIGltYWdlLXJlbmRlcmluZz0iYXV0byIgc2hhcGUtcmVuZGVyaW5nPSJhdXRvIiBzb2xpZC1jb2xvcj0iIzAwMDAwMCIgc3RvcC1jb2xvcj0iIzAwMDAwMCIgc3R5bGU9ImZvbnQtZmVhdHVyZS1zZXR0aW5nczpub3JtYWw7Zm9udC12YXJpYW50LWFsdGVybmF0ZXM6bm9ybWFsO2ZvbnQtdmFyaWFudC1jYXBzOm5vcm1hbDtmb250LXZhcmlhbnQtZWFzdC1hc2lhbjpub3JtYWw7Zm9udC12YXJpYW50LWxpZ2F0dXJlczpub3JtYWw7Zm9udC12YXJpYW50LW51bWVyaWM6bm9ybWFsO2ZvbnQtdmFyaWFudC1wb3NpdGlvbjpub3JtYWw7Zm9udC12YXJpYXRpb24tc2V0dGluZ3M6bm9ybWFsO2lubGluZS1zaXplOjA7aXNvbGF0aW9uOmF1dG87bWl4LWJsZW5kLW1vZGU6bm9ybWFsO3NoYXBlLW1hcmdpbjowO3NoYXBlLXBhZGRpbmc6MDt0ZXh0LWRlY29yYXRpb24tY29sb3I6IzAwMDAwMDt0ZXh0LWRlY29yYXRpb24tbGluZTpub25lO3RleHQtZGVjb3JhdGlvbi1zdHlsZTpzb2xpZDt0ZXh0LWluZGVudDowO3RleHQtb3JpZW50YXRpb246bWl4ZWQ7dGV4dC10cmFuc2Zvcm06bm9uZTt3aGl0ZS1zcGFjZTpub3JtYWwiLz4KPHBhdGggZD0ibTQ3Ljc1MSAxOS40NzN2My44NTE2Yy0xMy44MzYgMS4xNDg2LTI0Ljc1IDEyLjc3NC0yNC43NSAyNi45IDAgNC4xMTExIDAuOTI2NyA4LjAwODQgMi41NzgxIDExLjVsLTMuMzM0IDEuOTI1OCAyLjI1IDMuODk2NSAzLjM0MTgtMS45Mjk3YzQuODgyOSA3LjAwOCAxMi45OTYgMTEuNjA3IDIyLjE2NCAxMS42MDcgOS4xNjc2IDAgMTcuMjc5LTQuNTk5NSAyMi4xNjItMTEuNjA3bDMuMzQzNyAxLjkyOTcgMi4yNS0zLjg5NjUtMy4zMzU5LTEuOTI1OGMxLjY1MTUtMy40OTE3IDIuNTgwMS03LjM4ODggMi41ODAxLTExLjUgMC0xNC4xMjctMTAuOTE0LTI1Ljc1Mi0yNC43NS0yNi45di0zLjg1MTZ6bTAgOC4zNjMzdjkuNjM2N2gtMy44MTI1bDYuMDYyNSAxMC41IDYuMDYyNS0xMC41aC0zLjgxMjV2LTkuNjM2N2MxMS4zOTEgMS4xMjQ0IDIwLjI1IDEwLjY5NSAyMC4yNSAyMi4zODkgMCAzLjMwMDItMC43MTE1IDYuNDI4LTEuOTgwNSA5LjI0OGwtOC4zNTM1LTQuODIyMyAxLjkwNjItMy4zMDA4LTEyLjEyMy0yZS0zIDYuMDYyNSAxMC41IDEuOTA0My0zLjMwMDggOC4zNTM1IDQuODIyM2MtNC4wOCA1LjY2ODgtMTAuNzMxIDkuMzU1NS0xOC4yNyA5LjM1NTUtNy41Mzg4IDAtMTQuMTktMy42ODY3LTE4LjI3LTkuMzU1NWw4LjM1MzYtNC44MjIzIDEuOTA0MyAzLjMwMDggNi4wNjI1LTEwLjVoLTEyLjEyM2wxLjkwNjMgMy4zMDI3LTguMzUzNiA0LjgyMjNjLTEuMjY5LTIuODItMS45ODA0LTUuOTQ3OC0xLjk4MDQtOS4yNDggMC0xMS42OTMgOC44NTktMjEuMjY0IDIwLjI1LTIyLjM4OXoiIGNvbG9yPSIjMDAwMDAwIiBjb2xvci1yZW5kZXJpbmc9ImF1dG8iIGRvbWluYW50LWJhc2VsaW5lPSJhdXRvIiBmaWxsPSJ1cmwoI2EpIiBpbWFnZS1yZW5kZXJpbmc9ImF1dG8iIHNoYXBlLXJlbmRlcmluZz0iYXV0byIgc29saWQtY29sb3I9IiMwMDAwMDAiIHN0b3AtY29sb3I9IiMwMDAwMDAiIHN0cm9rZT0iIzFhMWExYSIgc3Ryb2tlLW9wYWNpdHk9Ii4wNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0eWxlPSJmb250LWZlYXR1cmUtc2V0dGluZ3M6bm9ybWFsO2ZvbnQtdmFyaWFudC1hbHRlcm5hdGVzOm5vcm1hbDtmb250LXZhcmlhbnQtY2Fwczpub3JtYWw7Zm9udC12YXJpYW50LWVhc3QtYXNpYW46bm9ybWFsO2ZvbnQtdmFyaWFudC1saWdhdHVyZXM6bm9ybWFsO2ZvbnQtdmFyaWFudC1udW1lcmljOm5vcm1hbDtmb250LXZhcmlhbnQtcG9zaXRpb246bm9ybWFsO2ZvbnQtdmFyaWF0aW9uLXNldHRpbmdzOm5vcm1hbDtpbmxpbmUtc2l6ZTowO2lzb2xhdGlvbjphdXRvO21peC1ibGVuZC1tb2RlOm5vcm1hbDtwYWludC1vcmRlcjpzdHJva2UgbWFya2VycyBmaWxsO3NoYXBlLW1hcmdpbjowO3NoYXBlLXBhZGRpbmc6MDt0ZXh0LWRlY29yYXRpb24tY29sb3I6IzAwMDAwMDt0ZXh0LWRlY29yYXRpb24tbGluZTpub25lO3RleHQtZGVjb3JhdGlvbi1zdHlsZTpzb2xpZDt0ZXh0LWluZGVudDowO3RleHQtb3JpZW50YXRpb246bWl4ZWQ7dGV4dC10cmFuc2Zvcm06bm9uZTt3aGl0ZS1zcGFjZTpub3JtYWwiLz4KPHBhdGggZD0ibTM2LjI0MSAzLjk5MjYtMC4yOTY5IDEuMTExMy0yLjE1MjMgOC4wMzEyYy0xNC43MjggNi40Mzg2LTI0LjMyIDIwLjk2Ni0yNC4zMiAzNy4wOSAwIDEuNTA5NiAwLjEyODYgMy4wMTM5IDAuMjk2OSA0LjUxMzdsLTYuNjg1NiA2LjY4NTUgMTMuNzYgMjMuODMyIDkuMTUwNC0yLjQ1MTJjNi45NTg0IDUuMTI1NyAxNS4zNTEgNy45NDczIDI0LjAwOCA3Ljk0NzMgOC42NTY5IDVlLTUgMTcuMDUxLTIuODIwOSAyNC4wMS03Ljk0NzNsOS4xNDg1IDIuNDUxMiAxMy43Ni0yMy44MzItNi42ODU1LTYuNjg1NWMwLjE2ODMtMS41IDAuMjk2OS0zLjAwMzkgMC4yOTY5LTQuNTEzNyAwLTE2LjEyNC05LjU5MjUtMzAuNjUxLTI0LjMyLTM3LjA5bC0yLjQ0OTMtOS4xNDI2em0yLjMwMDggM2gyMi45MTZsMi4yMTg4IDguMjc1NCAwLjY4MzYgMC4yODMyYzE0LjAyOSA1LjgwOTcgMjMuMTcgMTkuNDg5IDIzLjE3IDM0LjY3NCAwIDEuNjM5NC0wLjEwODEgMy4yNzctMC4zMjIzIDQuOTAyM2wtMC4wOTYgMC43MzI0MiA2LjA1ODYgNi4wNTg2LTExLjQ1OSAxOS44NDQtOC4yNzU0LTIuMjE2OC0wLjU4NTkgMC40NTExN2MtNi41NTQ5IDUuMDMwNy0xNC41ODcgNy43NTU5LTIyLjg1IDcuNzU1OS04LjI2MjkgNWUtNSAtMTYuMjk1LTIuNzI1Mi0yMi44NS03Ljc1NTlsLTAuNTg2LTAuNDUxMTctOC4yNzU0IDIuMjE2OC0xMS40NTktMTkuODQ0IDYuMDU4Ni02LjA1ODYtMC4wOTYtMC43MzQzOGMtMC4yMTQxLTEuNjI1Mi0wLjMyMjItMy4yNjEyLTAuMzIyMi00LjkwMDQgMWUtNCAtMTUuMTg1IDkuMTQyMy0yOC44NjQgMjMuMTcyLTM0LjY3NGwwLjY4MzYtMC4yODMyeiIgY29sb3I9IiMwMDAwMDAiIGNvbG9yLXJlbmRlcmluZz0iYXV0byIgZG9taW5hbnQtYmFzZWxpbmU9ImF1dG8iIGZpbGw9InVybCgjYSkiIGltYWdlLXJlbmRlcmluZz0iYXV0byIgc2hhcGUtcmVuZGVyaW5nPSJhdXRvIiBzb2xpZC1jb2xvcj0iIzAwMDAwMCIgc3RvcC1jb2xvcj0iIzAwMDAwMCIgc3R5bGU9ImZvbnQtZmVhdHVyZS1zZXR0aW5nczpub3JtYWw7Zm9udC12YXJpYW50LWFsdGVybmF0ZXM6bm9ybWFsO2ZvbnQtdmFyaWFudC1jYXBzOm5vcm1hbDtmb250LXZhcmlhbnQtZWFzdC1hc2lhbjpub3JtYWw7Zm9udC12YXJpYW50LWxpZ2F0dXJlczpub3JtYWw7Zm9udC12YXJpYW50LW51bWVyaWM6bm9ybWFsO2ZvbnQtdmFyaWFudC1wb3NpdGlvbjpub3JtYWw7Zm9udC12YXJpYXRpb24tc2V0dGluZ3M6bm9ybWFsO2lubGluZS1zaXplOjA7aXNvbGF0aW9uOmF1dG87bWl4LWJsZW5kLW1vZGU6bm9ybWFsO3NoYXBlLW1hcmdpbjowO3NoYXBlLXBhZGRpbmc6MDt0ZXh0LWRlY29yYXRpb24tY29sb3I6IzAwMDAwMDt0ZXh0LWRlY29yYXRpb24tbGluZTpub25lO3RleHQtZGVjb3JhdGlvbi1zdHlsZTpzb2xpZDt0ZXh0LWluZGVudDowO3RleHQtb3JpZW50YXRpb246bWl4ZWQ7dGV4dC10cmFuc2Zvcm06bm9uZTt3aGl0ZS1zcGFjZTpub3JtYWwiLz4KPC9zdmc+" />
+  <style>
+    :root { --paper:#ededed; --surface:#fff; --ink:#292929; --muted:#626262; --line:#ccc; --red:#900; --green:#376346; --sans:Arial,"Helvetica Neue","Noto Sans SC","Microsoft YaHei",sans-serif; }
+    * { box-sizing:border-box; scrollbar-width:thin; scrollbar-color:#8f7777 #e1dddd; }
+    [hidden] { display:none !important; }
+    html { font-size:16px; overflow-y:scroll; }
+    @supports (scrollbar-gutter:stable) {
+      html { overflow-y:auto; scrollbar-gutter:stable; }
+    }
+    ::-webkit-scrollbar { width:10px; height:10px; }
+    ::-webkit-scrollbar-track { background:#e1dddd; }
+    ::-webkit-scrollbar-thumb { background:#8f7777; border:2px solid #e1dddd; border-radius:8px; }
+    ::-webkit-scrollbar-thumb:hover { background:var(--red); }
+    ::-webkit-scrollbar-corner { background:#e1dddd; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:400 16px/1.5 var(--sans); -webkit-font-smoothing:antialiased; }
+    button,input,select,textarea { font:inherit; color:inherit; }
+    button,a,summary,input,select,textarea { -webkit-tap-highlight-color:transparent; }
+    button,a,summary { touch-action:manipulation; }
+    button { cursor:pointer; }
+    button:disabled { cursor:not-allowed; opacity:.48; }
+    a { color:inherit; }
+    :focus-visible { outline:2px solid var(--red); outline-offset:4px; }
+    .site-header { color:#f5f5f5; background:repeating-linear-gradient(135deg,#ffffff03 0 1px,transparent 1px 4px),linear-gradient(#161616 8%,#272121 62%,#643737); border-bottom:1px solid #171717; }
+    .header-inner,.status-inner { width:min(1152px,calc(100% - 64px)); margin:0 auto; display:flex; align-items:center; }
+    .header-inner { min-height:112px; gap:22px; padding:20px 0; }
+    .scp-mark { flex:0 0 72px; width:72px; height:72px; display:block; }
+    .brand { min-width:0; }
+    .brand-title { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; }
+    .app-version { display:inline-block; border:1px solid #8e7777; border-radius:2px; padding:2px 7px; color:#eee3d5; background:#2c2222; font-size:16px; line-height:1.5; font-weight:600; white-space:nowrap; }
+    h1 { margin:0; font-size:clamp(30px,4.4vw,46px); line-height:1.1; letter-spacing:-.035em; font-weight:750; text-shadow:1px 2px 2px #000; }
+    .brand p { margin:6px 0 0; font-size:16px; line-height:1.5; color:#ddd2c0; }
+    .status-bar { background:linear-gradient(#464646,#303030); border-top:1px solid #ffffff25; border-bottom:1px solid #222; color:#eee; }
+    .status-inner { min-height:43px; justify-content:space-between; gap:16px; font-size:16px; }
+    .model-tag { margin-left:12px; padding-left:12px; border-left:1px solid #777; font-weight:600; white-space:nowrap; }
+    .page { width:min(1152px,calc(100% - 64px)); margin:22px auto 48px; }
+    main { border:1px solid #bbb; border-top:3px solid var(--red); background:var(--surface); box-shadow:0 2px 6px #00000012; }
+    .connection { display:inline-flex; align-items:center; gap:9px; font-size:16px; white-space:nowrap; color:#ddd; }
+    .connection::before { content:""; width:8px; height:8px; background:var(--muted); border-radius:50%; }
+    .connection[data-state="ready"] { color:#d8e6d6; }
+    .connection[data-state="ready"]::before { background:#a3bfa1; }
+    .connection[data-state="busy"] { color:#ffcebe; }
+    .connection[data-state="busy"]::before,.connection[data-state="offline"]::before { background:#e59085; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); border-bottom:1px solid #bbb; }
+    .compose { padding:22px 28px 20px; border-right:1px solid var(--line); min-width:0; }
+    .section-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
+    h2 { margin:0; font-size:22px; color:var(--red); font-weight:650; letter-spacing:-.025em; line-height:1.3; }
+    .section-title { display:flex; align-items:baseline; gap:12px; }
+    .section-index { font-size:16px; color:var(--muted); font-family:Consolas,monospace; font-variant-numeric:tabular-nums; }
+    .text-button { border:0; background:transparent; padding:4px 0; font-size:16px; text-decoration:underline; text-underline-offset:4px; }
+    .text-button:hover { color:var(--red); }
+    .text-input { display:block; width:100%; min-height:180px; padding:14px; border:1px solid #aaa; border-radius:2px; resize:vertical; background:#fcfcfc; box-shadow:inset 0 1px 3px #0000000b; font-size:20px; line-height:1.65; }
+    .text-input:focus { outline:none; }
+    .text-input:focus-visible { outline:2px solid var(--red); outline-offset:2px; }
+    .text-input::placeholder { color:var(--muted); }
+    .input-bottom { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; padding:10px 0 12px; border-bottom:1px solid var(--line); }
+    .count { margin-left:auto; color:var(--muted); font-size:16px; font-variant-numeric:tabular-nums; }
+    .hint.text-hint { flex-basis:100%; margin:0; }
+    .compose-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 20px; align-items:end; margin-top:16px; }
+    .compose-actions .generate,.token-hint { grid-column:1 / -1; }
+    .hint.token-hint { margin:0; }
+    label { display:block; font-size:16px; font-weight:600; margin-bottom:8px; }
+    input[type="number"],select,.prompt-input { width:100%; min-width:0; border:1px solid #aaa; border-radius:2px; background:var(--surface); padding:10px 12px; font-size:16px; }
+    input[type="number"]::-webkit-inner-spin-button { opacity:1; }
+    select,input[type="number"] { min-height:48px; }
+    input:disabled,select:disabled,textarea:disabled { opacity:.5; cursor:not-allowed; }
+    .generate { min-height:50px; padding:12px 18px; border:1px solid #720000; border-radius:2px; background:linear-gradient(#a81515,#850000); color:#fff; font-size:18px; font-weight:650; display:flex; align-items:center; justify-content:space-between; gap:24px; box-shadow:inset 0 1px 0 #ffffff18; }
+    .generate:hover:not(:disabled) { background:#780000; }
+    .generate:disabled { opacity:.5; }
+    .message { min-height:24px; margin:12px 0 0; font-size:16px; color:var(--muted); }
+    .message[data-kind="error"] { color:var(--red); }
+    .result { padding:26px 26px 24px; display:flex; flex-direction:column; min-width:0; background:#f5f5f5; }
+    .result .section-head { margin-bottom:24px; }
+    .empty-result { flex:1; min-height:270px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; color:var(--muted); }
+    .empty-result p { margin:0; font-size:18px; }
+    .wave-symbol { width:112px; height:64px; color:#a9a9a9; }
+    .result-body { margin-top:auto; margin-bottom:auto; }
+    audio { display:block; width:100%; height:48px; margin:0 0 26px; }
+    .result-stats { display:grid; grid-template-columns:1fr 1fr; gap:22px 12px; margin:0 0 26px; }
+    .result-stats div { min-width:0; }
+    .result-stats dt { font-size:16px; color:var(--muted); }
+    .result-stats dd { margin:4px 0 0; font-size:26px; letter-spacing:-.025em; font-variant-numeric:tabular-nums; }
+    .result-stats .seed-stat { grid-column:1 / -1; display:flex; justify-content:space-between; gap:16px; border-top:1px solid var(--line); padding-top:16px; }
+    .result-stats .seed-stat dd { margin:0; font-size:16px; letter-spacing:0; }
+    .download { display:flex; align-items:center; justify-content:space-between; gap:20px; min-height:50px; padding:12px 16px; border:1px solid #999; border-radius:2px; color:var(--red); background:linear-gradient(#fff,#e9e9e9); font-size:16px; font-weight:600; text-decoration:none; }
+    .download:hover { background:#e1e1e1; border-color:var(--red); }
+    .settings { margin:0 28px; }
+    .settings > summary { display:flex; align-items:center; justify-content:space-between; list-style:none; padding:22px 0; color:var(--red); font-size:18px; font-weight:600; cursor:pointer; }
+    .settings > summary::-webkit-details-marker { display:none; }
+    .settings > summary::after { content:"+"; color:var(--red); font-size:26px; line-height:1; font-weight:400; }
+    .settings[open] > summary::after { content:"−"; }
+    .settings-body { padding-bottom:28px; }
+    .settings-toolbar { display:flex; justify-content:space-between; align-items:start; gap:20px; border-bottom:1px solid #aaa; margin-bottom:24px; }
+    .tabs { display:flex; flex-wrap:wrap; gap:4px; }
+    .tab { border:1px solid #bbb; border-bottom:0; border-radius:3px 3px 0 0; background:#eee; padding:10px 16px; font-size:16px; color:var(--muted); }
+    .tab[aria-selected="true"] { color:var(--red); background:var(--surface); border-top:3px solid var(--red); padding-top:8px; font-weight:650; }
+    .reset { align-self:start; }
+    .group + .group { margin-top:28px; padding-top:24px; border-top:1px solid var(--line); }
+    .group-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:16px; }
+    h3 { margin:0; font-size:18px; font-weight:650; }
+    .toggle { display:inline-flex; align-items:center; gap:10px; margin:0; font-size:16px; font-weight:500; cursor:pointer; }
+    input[type="checkbox"] { width:21px; height:21px; margin:0; accent-color:var(--red); }
+    .param-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:22px; }
+    .param { min-width:0; }
+    .param-grid.two { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .hint { margin:8px 0 0; color:var(--muted); font-size:16px; line-height:1.6; }
+    .group-hint { margin:-4px 0 16px; }
+    .seed-input { display:flex; gap:8px; }
+    .seed-input input { flex:1; min-width:0; }
+    .small-button { border:1px solid #aaa; border-radius:2px; background:linear-gradient(#fff,#eee); padding:8px 13px; font-size:16px; white-space:nowrap; }
+    .small-button:hover { border-color:var(--ink); }
+    .prompt-input { display:block; min-height:130px; resize:vertical; line-height:1.6; }
+    .prompt-presets { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+    .optional-fields { margin-top:20px; }
+    .history { margin:0 28px; padding:24px 0 28px; border-top:1px solid #aaa; }
+    .history-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
+    .history-title { display:flex; align-items:baseline; gap:12px; }
+    .history-count { color:var(--muted); font-size:16px; }
+    .history-list { list-style:none; padding:0 6px 0 0; margin:0; border-top:1px solid var(--line); max-height:clamp(12rem,32vh,20rem); overflow-x:hidden; overflow-y:scroll; overscroll-behavior-y:contain; }
+    @supports (scrollbar-gutter:stable) {
+      .history-list { overflow-y:auto; scrollbar-gutter:stable; }
+    }
+    .history-item { display:flex; align-items:center; border-bottom:1px solid var(--line); gap:20px; padding:4px 0; }
+    .history-select { display:flex; align-items:center; gap:20px; flex:1; min-width:0; border:0; background:transparent; text-align:left; padding:15px 0; font-size:16px; }
+    .history-select[aria-pressed="true"] .history-number { background:var(--red); color:#fff; }
+    .history-number { display:grid; place-items:center; flex:0 0 34px; height:34px; border:1px solid var(--line); font-size:16px; font-variant-numeric:tabular-nums; }
+    .history-text { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .history-duration { color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .history-download { font-size:16px; text-underline-offset:4px; }
+    @media (max-width:900px) {
+      .workspace { grid-template-columns:1fr; }
+      .compose { border-right:0; }
+      .result { border-top:1px solid var(--line); }
+      .empty-result { min-height:170px; }
+      .result-stats { grid-template-columns:1fr 1fr 1fr; align-items:start; }
+      .result-stats .seed-stat { grid-column:auto; display:block; border:0; padding:0; }
+      .result-stats .seed-stat dd { margin-top:8px; }
+      .param-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width:600px) {
+      .header-inner,.status-inner { width:calc(100% - 32px); }
+      .header-inner { min-height:114px; gap:14px; padding:18px 0; }
+      .scp-mark { flex-basis:60px; width:60px; height:60px; }
+      h1 { font-size:30px; }
+      .brand-title { gap:8px 12px; }
+      .page { width:calc(100% - 32px); margin:18px auto 32px; }
+      .compose,.result { padding:22px 20px; }
+      .text-input { min-height:210px; font-size:20px; }
+      .compose-actions { grid-template-columns:1fr; gap:16px; }
+      .generate { min-height:52px; }
+      .param-grid,.param-grid.two { grid-template-columns:1fr; gap:20px; }
+      .settings,.history { margin-left:20px; margin-right:20px; }
+      .settings-toolbar { flex-direction:column; gap:14px; padding-bottom:16px; }
+      .tabs { gap:4px; }
+      .tab { padding-left:10px; padding-right:10px; }
+      .reset { align-self:end; }
+      .result-stats { gap:14px; }
+      .result-stats dd { font-size:22px; }
+      .result-stats .seed-stat dd { font-size:16px; overflow-wrap:anywhere; }
+      .history-select,.history-item { gap:12px; }
+      .history-duration { display:none; }
+    }
+  </style>
+</head>
+<body>
+<header class="site-header"><div class="header-inner">
+  <!-- SCP Foundation header-logo.svg by Dr_Grom (SCP Wiki / Common-Theme).
+       Artwork: CC-BY-SA-3.0; https://creativecommons.org/licenses/by-sa/3.0/
+       Source: https://github.com/Grombald/Common-Theme/blob/27f25355852ff8eaf497da8443a91844a10f6d7e/docs/svg/header-logo.svg
+       Artwork unchanged; embedded with accessibility labels and CSS sizing.
+       This graphic is excluded from the project's Apache-2.0 code license.
+       Full attribution and license scope: NOTICE and licenses/README.md. -->
+  <svg class="scp-mark" role="img" aria-label="SCP 基金会标志" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title>SCP 基金会标志</title>
+<defs>
+<linearGradient id="b" x1="-520.21" x2="-503.35" y1="-542.58" y2="-519.24" gradientTransform="matrix(1 0 0 1 545 553.81)" gradientUnits="userSpaceOnUse">
+<stop stop-opacity=".36471" offset="0"/>
+<stop stop-opacity=".27059" offset="1"/>
+</linearGradient>
+<linearGradient id="c" x1="-478.78" x2="-454.76" y1="-540.68" y2="-499.07" gradientTransform="matrix(1 0 0 1 545 553.81)" gradientUnits="userSpaceOnUse">
+<stop stop-opacity=".14902" offset="0"/>
+<stop stop-color="#fff" stop-opacity=".066667" offset="1"/>
+</linearGradient>
+<linearGradient id="d" x1="-527.63" x2="-461.84" y1="-478.21" y2="-468.56" gradientTransform="matrix(1 0 0 1 545 553.81)" gradientUnits="userSpaceOnUse">
+<stop stop-color="#fff" stop-opacity=".14902" offset="0"/>
+<stop stop-color="#fff" stop-opacity=".16471" offset="1"/>
+</linearGradient>
+<linearGradient id="a" x1="50" x2="50" y1="90.752" y2="4.3783" gradientTransform="matrix(1 0 0 1 .00049862 4e-4)" gradientUnits="userSpaceOnUse" xlink:href="#e"/>
+<linearGradient id="e">
+<stop stop-color="#dedcc3" offset="0"/>
+<stop stop-color="#fff" offset="1"/>
+</linearGradient>
+</defs>
+<path d="m37.378 5.4436-2.3265 8.6822c-18.032 7.392-26.308 24.4-23.787 41.201l-6.3562 6.3562 12.622 21.862 8.6822-2.3265c6.824 5.2372 15.186 8.076 23.788 8.076 8.6021 5e-5 16.964-2.8388 23.788-8.076l8.6822 2.3265 12.622-21.862-6.3562-6.3557c3.2185-19.362-10.876-36.53-23.787-41.202l-2.3265-8.6822z" fill="#1a1a1a" fill-opacity=".6"/>
+<path d="m65.424 1.793h-30.846l-2.6328 9.8242c-14.954 6.9972-24.666 21.983-24.666 38.607 0 1.2318 0.1339 2.457 0.2402 3.6836l3.7447 1.4189c-3.2841-19.971 11.057-37.733 23.787-41.201l2.3265-8.6822h25.245z" color="#000000" color-rendering="auto" dominant-baseline="auto" fill="url(#b)" image-rendering="auto" shape-rendering="auto" solid-color="#000000" stop-color="#000000" style="font-feature-settings:normal;font-variant-alternates:normal;font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal;font-variant-position:normal;font-variation-settings:normal;inline-size:0;isolation:auto;mix-blend-mode:normal;shape-margin:0;shape-padding:0;text-decoration-color:#000000;text-decoration-line:none;text-decoration-style:solid;text-indent:0;text-orientation:mixed;text-transform:none;white-space:normal"/>
+<path d="m62.623 5.4436 2.3265 8.6822 3.1058-2.5086-2.6309-9.8242z" fill-opacity=".07451"/>
+<path d="m95.093 61.683-6.3562-6.3557 3.7443-1.4194 7.1738 7.1738z" fill-opacity=".082353"/>
+<path d="m0.346 61.082 7.1738-7.1738 3.7447 1.4189-6.3562 6.3562z" fill-opacity=".32157"/>
+<path d="m0.346 61.082 4.5623 0.60124 12.622 21.862-1.7607 4.2497z" fill-opacity=".11765"/>
+<path d="m92.481 53.908c0.1063-1.2267 0.2402-2.4517 0.2402-3.6836 0-16.624-9.7117-31.61-24.666-38.607l-3.1058 2.5086c17.184 5.8031 27.185 28.14 23.787 41.202z" color="#000000" color-rendering="auto" dominant-baseline="auto" fill="url(#c)" image-rendering="auto" shape-rendering="auto" solid-color="#000000" stop-color="#000000" style="font-feature-settings:normal;font-variant-alternates:normal;font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal;font-variant-position:normal;font-variation-settings:normal;inline-size:0;isolation:auto;mix-blend-mode:normal;shape-margin:0;shape-padding:0;text-decoration-color:#000000;text-decoration-line:none;text-decoration-style:solid;text-indent:0;text-orientation:mixed;text-transform:none;white-space:normal"/>
+<path d="m95.093 61.683-12.622 21.862-8.6822-2.3265c-13.025 12.501-38.913 9.6924-47.576 0l-8.6822 2.3265-1.7607 4.2497 9.8418-2.6367c7.1571 4.994 15.631 7.7872 24.389 7.7871 8.7579 5e-5 17.232-2.7931 24.389-7.7871l9.8418 2.6367 15.424-26.713z" color="#000000" color-rendering="auto" dominant-baseline="auto" fill="url(#d)" image-rendering="auto" shape-rendering="auto" solid-color="#000000" stop-color="#000000" style="font-feature-settings:normal;font-variant-alternates:normal;font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal;font-variant-position:normal;font-variation-settings:normal;inline-size:0;isolation:auto;mix-blend-mode:normal;shape-margin:0;shape-padding:0;text-decoration-color:#000000;text-decoration-line:none;text-decoration-style:solid;text-indent:0;text-orientation:mixed;text-transform:none;white-space:normal"/>
+<path d="m47.751 19.473v3.8516c-13.836 1.1486-24.75 12.774-24.75 26.9 0 4.1111 0.9267 8.0084 2.5781 11.5l-3.334 1.9258 2.25 3.8965 3.3418-1.9297c4.8829 7.008 12.996 11.607 22.164 11.607 9.1676 0 17.279-4.5995 22.162-11.607l3.3437 1.9297 2.25-3.8965-3.3359-1.9258c1.6515-3.4917 2.5801-7.3888 2.5801-11.5 0-14.127-10.914-25.752-24.75-26.9v-3.8516zm0 8.3633v9.6367h-3.8125l6.0625 10.5 6.0625-10.5h-3.8125v-9.6367c11.391 1.1244 20.25 10.695 20.25 22.389 0 3.3002-0.7115 6.428-1.9805 9.248l-8.3535-4.8223 1.9062-3.3008-12.123-2e-3 6.0625 10.5 1.9043-3.3008 8.3535 4.8223c-4.08 5.6688-10.731 9.3555-18.27 9.3555-7.5388 0-14.19-3.6867-18.27-9.3555l8.3536-4.8223 1.9043 3.3008 6.0625-10.5h-12.123l1.9063 3.3027-8.3536 4.8223c-1.269-2.82-1.9804-5.9478-1.9804-9.248 0-11.693 8.859-21.264 20.25-22.389z" color="#000000" color-rendering="auto" dominant-baseline="auto" fill="url(#a)" image-rendering="auto" shape-rendering="auto" solid-color="#000000" stop-color="#000000" stroke="#1a1a1a" stroke-opacity=".06" stroke-width="1.5" style="font-feature-settings:normal;font-variant-alternates:normal;font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal;font-variant-position:normal;font-variation-settings:normal;inline-size:0;isolation:auto;mix-blend-mode:normal;paint-order:stroke markers fill;shape-margin:0;shape-padding:0;text-decoration-color:#000000;text-decoration-line:none;text-decoration-style:solid;text-indent:0;text-orientation:mixed;text-transform:none;white-space:normal"/>
+<path d="m36.241 3.9926-0.2969 1.1113-2.1523 8.0312c-14.728 6.4386-24.32 20.966-24.32 37.09 0 1.5096 0.1286 3.0139 0.2969 4.5137l-6.6856 6.6855 13.76 23.832 9.1504-2.4512c6.9584 5.1257 15.351 7.9473 24.008 7.9473 8.6569 5e-5 17.051-2.8209 24.01-7.9473l9.1485 2.4512 13.76-23.832-6.6855-6.6855c0.1683-1.5 0.2969-3.0039 0.2969-4.5137 0-16.124-9.5925-30.651-24.32-37.09l-2.4493-9.1426zm2.3008 3h22.916l2.2188 8.2754 0.6836 0.2832c14.029 5.8097 23.17 19.489 23.17 34.674 0 1.6394-0.1081 3.277-0.3223 4.9023l-0.096 0.73242 6.0586 6.0586-11.459 19.844-8.2754-2.2168-0.5859 0.45117c-6.5549 5.0307-14.587 7.7559-22.85 7.7559-8.2629 5e-5 -16.295-2.7252-22.85-7.7559l-0.586-0.45117-8.2754 2.2168-11.459-19.844 6.0586-6.0586-0.096-0.73438c-0.2141-1.6252-0.3222-3.2612-0.3222-4.9004 1e-4 -15.185 9.1423-28.864 23.172-34.674l0.6836-0.2832z" color="#000000" color-rendering="auto" dominant-baseline="auto" fill="url(#a)" image-rendering="auto" shape-rendering="auto" solid-color="#000000" stop-color="#000000" style="font-feature-settings:normal;font-variant-alternates:normal;font-variant-caps:normal;font-variant-east-asian:normal;font-variant-ligatures:normal;font-variant-numeric:normal;font-variant-position:normal;font-variation-settings:normal;inline-size:0;isolation:auto;mix-blend-mode:normal;shape-margin:0;shape-padding:0;text-decoration-color:#000000;text-decoration-line:none;text-decoration-style:solid;text-indent:0;text-orientation:mixed;text-transform:none;white-space:normal"/>
+</svg>
+  <div class="brand"><div class="brand-title"><h1>C.A.S.S.I.E.</h1><span class="app-version" title="公开包与推理 WebUI 版本">V1.0.0</span></div><p lang="en">Central Autonomic Service System for Internal Emergencies</p><p>内部紧急情况中央自主服务系统</p></div>
+</div></header>
+<div class="status-bar"><div class="status-inner"><span>CustomVoice <span class="model-tag">S0.3</span></span><span class="connection" id="connection" data-state="loading" role="status">连接中</span></div></div>
+<div class="page">
+  <main>
+    <div class="workspace">
+      <section class="compose" aria-labelledby="inputTitle">
+        <div class="section-head"><div class="section-title"><span class="section-index" aria-hidden="true">01</span><h2 id="inputTitle"><label for="text" style="font:inherit;margin:0">输入文本</label></h2></div><button class="text-button" id="clearText" type="button">清空</button></div>
+        <textarea class="text-input" id="text" spellcheck="false" placeholder="输入要生成的内容…" aria-describedby="textCount textHint"></textarea>
+        <div class="input-bottom"><span class="count" id="textCount" title="去除首尾空白后按字符统计，包含中间空格和标点。">当前字数：0</span><p class="hint text-hint" id="textHint">长文本可能增加耗时和显存占用，并出现重复、漏读或语调不稳。MaxTokens 不足可能截断音频，建议分段生成。</p></div>
+        <div class="compose-actions">
+          <div><label for="language">语言</label><select id="language"><option value="Auto" selected>自动</option><option value="English">英语</option><option value="Chinese">中文</option><option value="Japanese">日语</option><option value="Korean">韩语</option><option value="German">德语</option><option value="French">法语</option><option value="Russian">俄语</option><option value="Portuguese">葡萄牙语</option><option value="Spanish">西班牙语</option><option value="Italian">意大利语</option></select></div>
+          <div><label for="tokens">最大生成 Token</label><input id="tokens" type="number" min="64" max="2048" step="1" value="768" required aria-describedby="tokensHint" /></div>
+          <p class="hint token-hint" id="tokensHint">Token 范围 64–2048，默认 768；过低可能截断音频。</p>
+          <button class="generate" id="generate" type="button" disabled><span id="generateLabel">生成音频</span><span aria-hidden="true">→</span></button>
+        </div>
+        <p class="message" id="message" role="status" aria-live="polite"></p>
+      </section>
+      <section class="result" id="result" aria-labelledby="resultTitle" aria-busy="false">
+        <div class="section-head"><div class="section-title"><span class="section-index" aria-hidden="true">02</span><h2 id="resultTitle">生成结果</h2></div></div>
+        <div class="empty-result" id="emptyResult"><svg class="wave-symbol" viewBox="0 0 112 64" aria-hidden="true"><g fill="currentColor"><rect x="4" y="25" width="6" height="14"/><rect x="20" y="16" width="6" height="32"/><rect x="36" y="6" width="6" height="52"/><rect x="52" y="0" width="6" height="64"/><rect x="68" y="15" width="6" height="34"/><rect x="84" y="22" width="6" height="20"/><rect x="100" y="28" width="6" height="8"/></g></svg><p>暂无音频</p></div>
+        <div class="result-body" id="resultBody" hidden><audio id="player" controls preload="metadata" aria-label="生成音频播放器"></audio><dl class="result-stats"><div><dt>音频时长</dt><dd id="resultDuration">—</dd></div><div><dt>生成耗时</dt><dd id="resultElapsed">—</dd></div><div class="seed-stat"><dt>Seed</dt><dd id="resultSeed">—</dd></div></dl><a class="download" id="download" download><span>下载 WAV</span><span aria-hidden="true">↓</span></a></div>
+      </section>
+    </div>
+    <details class="settings" id="settingsPanel"><summary>参数设置</summary><div class="settings-body">
+      <div class="settings-toolbar"><div class="tabs" role="tablist" aria-label="参数分组"><button class="tab" id="samplingTab" type="button" role="tab" aria-selected="true" aria-controls="samplingPanel" data-panel="samplingPanel">采样</button><button class="tab" id="promptTab" type="button" role="tab" aria-selected="false" aria-controls="promptPanel" tabindex="-1" data-panel="promptPanel">风格指令</button><button class="tab" id="f0Tab" type="button" role="tab" aria-selected="false" aria-controls="f0Panel" tabindex="-1" data-panel="f0Panel">音高处理</button></div><button class="text-button reset" id="resetSettings" type="button">恢复默认</button></div>
+      <div id="samplingPanel" role="tabpanel" aria-labelledby="samplingTab">
+        <div class="group"><div class="group-heading"><h3>主采样</h3><label class="toggle"><input id="doSample" type="checkbox" checked />启用采样</label></div><p class="hint group-hint">关闭采样后使用贪心解码。</p><div class="param-grid">
+          <div class="param"><label for="temperature">温度 · Temperature</label><input id="temperature" type="number" min="0.05" max="2" step="0.05" value="0.5" /><p class="hint">越高越随机，过低可能重复。</p></div>
+          <div class="param"><label for="topP">Top-p</label><input id="topP" type="number" min="0.05" max="1" step="0.01" value="0.8" /><p class="hint">候选的累计概率范围。</p></div>
+          <div class="param"><label for="topK">Top-k</label><input id="topK" type="number" min="0" max="200" step="1" value="30" /><p class="hint">最多保留的候选数；0 为不限。</p></div>
+        </div></div>
+        <div class="group"><div class="group-heading"><h3>细节采样 · Subtalker</h3><label class="toggle"><input id="subDoSample" type="checkbox" checked />启用采样</label></div><div class="param-grid">
+          <div class="param"><label for="subTemperature">细节温度</label><input id="subTemperature" type="number" min="0.05" max="2" step="0.05" value="0.8" /><p class="hint">控制声学细节的随机性。</p></div>
+          <div class="param"><label for="subTopP">细节 Top-p</label><input id="subTopP" type="number" min="0.05" max="1" step="0.01" value="0.9" /><p class="hint">细节采样的累计概率范围。</p></div>
+          <div class="param"><label for="subTopK">细节 Top-k</label><input id="subTopK" type="number" min="0" max="200" step="1" value="30" /><p class="hint">细节候选数；0 为不限。</p></div>
+        </div></div>
+        <div class="group param-grid two">
+          <div class="param"><label for="repetitionPenalty">重复惩罚</label><input id="repetitionPenalty" type="number" min="1" max="2" step="0.01" value="1.05" /><p class="hint">大于 1 抑制重复，过高影响自然度。</p></div>
+          <div class="param"><label for="seed">随机种子 · Seed</label><div class="seed-input"><input id="seed" type="number" min="-1" max="2147483647" step="1" value="-1" /><button class="small-button" id="randomSeed" type="button">随机</button></div><p class="hint">-1 为每次随机；固定值便于复现。</p></div>
+        </div>
+      </div>
+      <div id="promptPanel" role="tabpanel" aria-labelledby="promptTab" hidden><div class="group-heading"><h3>风格指令 · Prompt</h3><label class="toggle"><input id="instructEnabled" type="checkbox" />启用</label></div><p class="hint">实验性风格指令，效果可能不稳定。</p><div class="optional-fields" id="promptFields" hidden><label for="instruct">指令内容</label><textarea class="prompt-input" id="instruct" placeholder="例如：Low pitch. Flat delivery." maxlength="2000" spellcheck="false" disabled></textarea><div class="prompt-presets"><button class="small-button" type="button" data-instruct="Low pitch. Flat, almost monotone delivery. No sentence-final rise." disabled>低沉平稳</button><button class="small-button" type="button" data-instruct="Mechanical facility announcement. Keep the delivery flat." disabled>机械广播</button></div></div></div>
+      <div id="f0Panel" role="tabpanel" aria-labelledby="f0Tab" hidden><div class="group-heading"><h3>输出音高 · F0</h3><label class="toggle"><input id="f0Enabled" type="checkbox" />启用</label></div><p class="hint">对生成音频做后处理，可能影响音质。</p><div class="optional-fields param-grid two" id="f0Fields" hidden>
+        <div class="param"><label for="outPitch">音高偏移</label><input id="outPitch" type="number" min="-12" max="6" step="0.5" value="0" disabled /><p class="hint">单位为半音；负值降调，正值升调。</p></div>
+        <div class="param"><label for="outMode">处理模式</label><select id="outMode" disabled><option value="off" selected>仅调整音高</option><option value="flat">完全压平</option><option value="limited">限幅</option><option value="quantized">量化</option></select><p class="hint">压平语调、限制起伏或量化音高。</p></div>
+        <div class="param"><label for="outLimit">限幅范围</label><input id="outLimit" type="number" min="0" max="12" step="0.1" value="1" disabled /><p class="hint">中位音高上下的半音范围，仅限幅生效。</p></div>
+        <div class="param"><label for="outStep">量化步长</label><input id="outStep" type="number" min="0.1" max="6" step="0.1" value="1.5" disabled /><p class="hint">音高阶梯的半音间距，仅量化生效。</p></div>
+      </div></div>
+    </div></details>
+    <section class="history" id="history" aria-labelledby="historyTitle" hidden><div class="history-head"><div class="history-title"><h2 id="historyTitle">最近生成</h2><span class="history-count" id="historyCount">0</span></div><button class="text-button" id="clearHistory" type="button">清空记录</button></div><ol class="history-list" id="historyList" tabindex="0" aria-labelledby="historyTitle"></ol></section>
+  </main>
+</div>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const MODEL_ID = 'v1_s03';
+const F0_DEFAULTS = Object.freeze({pitch:0, mode:'off', limit:1, step:1.5});
+const FALLBACK_DEFAULTS = Object.freeze({temperature:.5, top_p:.8, top_k:30, repetition_penalty:1.05, do_sample:true, subtalker_temperature:.8, subtalker_top_p:.9, subtalker_top_k:30, subtalker_dosample:true, max_new_tokens:768, seed:-1});
+const PARAM_FIELDS = {temperature:'temperature', top_p:'topP', top_k:'topK', repetition_penalty:'repetitionPenalty', subtalker_temperature:'subTemperature', subtalker_top_p:'subTopP', subtalker_top_k:'subTopK', max_new_tokens:'tokens', seed:'seed'};
+let ready = false;
+let busy = false;
+let defaultsLoaded = false;
+let settingsTouched = false;
+let serverDefaults = {...FALLBACK_DEFAULTS};
+let currentResult = null;
+let recent = [];
+let serial = 0;
+
+function message(text = '', error = false) {
+  $('message').textContent = text;
+  $('message').dataset.kind = error ? 'error' : '';
+}
+function syncGenerate() {
+  const length = $('text').value.trim().length;
+  $('generate').disabled = !ready || busy || !length;
+  $('generateLabel').textContent = busy ? '正在生成…' : '生成音频';
+  $('result').setAttribute('aria-busy', String(busy));
+  $('connection').dataset.state = !ready ? 'offline' : busy ? 'busy' : 'ready';
+  $('connection').textContent = !ready ? '未连接' : busy ? '生成中' : '已就绪';
+}
+function syncText() {
+  const length = Array.from($('text').value.trim()).length;
+  $('textCount').textContent = `当前字数：${length}`;
+  syncGenerate();
+}
+function syncParameters() {
+  for (const id of ['temperature','topP','topK']) $(id).disabled = !$('doSample').checked;
+  for (const id of ['subTemperature','subTopP','subTopK']) $(id).disabled = !$('subDoSample').checked;
+  const prompt = $('instructEnabled').checked;
+  $('promptFields').hidden = !prompt;
+  $('instruct').disabled = !prompt;
+  document.querySelectorAll('[data-instruct]').forEach(button => {button.disabled = !prompt;});
+  const f0 = $('f0Enabled').checked;
+  $('f0Fields').hidden = !f0;
+  for (const id of ['outPitch','outMode']) $(id).disabled = !f0;
+  $('outLimit').disabled = !f0 || $('outMode').value !== 'limited';
+  $('outStep').disabled = !f0 || $('outMode').value !== 'quantized';
+}
+function applyDefaults() {
+  for (const [key,id] of Object.entries(PARAM_FIELDS)) $(id).value = serverDefaults[key];
+  $('doSample').checked = serverDefaults.do_sample;
+  $('subDoSample').checked = serverDefaults.subtalker_dosample;
+  $('language').value = 'Auto';
+  $('instructEnabled').checked = false;
+  $('instruct').value = '';
+  $('f0Enabled').checked = false;
+  $('outPitch').value = F0_DEFAULTS.pitch;
+  $('outMode').value = F0_DEFAULTS.mode;
+  $('outLimit').value = F0_DEFAULTS.limit;
+  $('outStep').value = F0_DEFAULTS.step;
+  syncParameters();
+}
+async function refreshStatus() {
+  try {
+    const response = await fetch('/api/status', {cache:'no-store'});
+    if (!response.ok) throw new Error('status');
+    const status = await response.json();
+    ready = Boolean(status.ready && status.current_model === MODEL_ID && status.models?.some(model => model.id === MODEL_ID));
+    if (!defaultsLoaded && status.sampling_defaults) {
+      serverDefaults = {...FALLBACK_DEFAULTS,...status.sampling_defaults};
+      if (!settingsTouched) applyDefaults();
+      defaultsLoaded = true;
+    }
+    if (!ready && !busy) message('模型尚未就绪。');
+    if (ready && ['服务未连接。','模型尚未就绪。'].includes($('message').textContent)) message();
+  } catch (_) {
+    ready = false;
+    if (!busy) message('服务未连接。', true);
+  }
+  syncGenerate();
+}
+function numeric(id) {
+  const input = $(id);
+  if (!input.value.trim() || !Number.isFinite(input.valueAsNumber) || !input.checkValidity()) {
+    const panel = input.closest('[role="tabpanel"]');
+    if (panel) {
+      $('settingsPanel').open = true;
+      activateTab(document.querySelector(`[data-panel="${panel.id}"]`));
+    }
+    input.focus();
+    input.reportValidity();
+    throw new Error('请检查参数范围。');
+  }
+  return input.valueAsNumber;
+}
+function requestPayload() {
+  const text = $('text').value.trim();
+  if (!text) throw new Error('请输入要生成的文本。');
+  const data = {text, model:MODEL_ID, language:$('language').value};
+  for (const [key,id] of Object.entries(PARAM_FIELDS)) data[key] = $(id).disabled ? serverDefaults[key] : numeric(id);
+  data.do_sample = $('doSample').checked;
+  data.subtalker_dosample = $('subDoSample').checked;
+  data.instruct = $('instructEnabled').checked ? $('instruct').value.trim() : '';
+  if (data.instruct.length > 2000) throw new Error('风格指令最多 2000 个字符。');
+  data.output_f0 = $('f0Enabled').checked ? {pitch:numeric('outPitch'), mode:$('outMode').value, limit:$('outLimit').disabled ? F0_DEFAULTS.limit : numeric('outLimit'), step:$('outStep').disabled ? F0_DEFAULTS.step : numeric('outStep')} : {...F0_DEFAULTS};
+  return data;
+}
+function seconds(value) {
+  const n = Number(value);
+  return value !== null && Number.isFinite(n) ? `${n.toFixed(2)} s` : '—';
+}
+function safeAudioURL(path, fallback) {
+  try {
+    const url = new URL(path, window.location.href);
+    if (url.origin === window.location.origin && url.pathname.startsWith('/api/audio/')) return url.href;
+  } catch (_) {}
+  return fallback;
+}
+function filenameFrom(path) {
+  const basename = String(path || '').split(/[\\/]/).pop();
+  return basename && /^[a-zA-Z0-9_.-]+\.wav$/i.test(basename) ? basename : 'cassie.wav';
+}
+function showResult(result, play = false) {
+  $('player').pause();
+  currentResult = result;
+  $('emptyResult').hidden = true;
+  $('resultBody').hidden = false;
+  $('player').src = result.url;
+  $('resultDuration').textContent = result.duration;
+  $('resultElapsed').textContent = result.elapsed;
+  $('resultSeed').textContent = result.seed;
+  $('download').href = result.download;
+  $('download').download = result.filename;
+  if (play) $('player').play().catch(() => {});
+  renderHistory();
+}
+function renderHistory() {
+  $('history').hidden = recent.length === 0;
+  $('historyCount').textContent = String(recent.length);
+  $('historyList').replaceChildren();
+  for (const item of recent) {
+    const row = document.createElement('li');
+    row.className = 'history-item';
+    const select = document.createElement('button');
+    select.type = 'button';
+    select.className = 'history-select';
+    select.setAttribute('aria-pressed', String(item === currentResult));
+    select.setAttribute('aria-label', `试听：${item.text}`);
+    const number = document.createElement('span');
+    number.className = 'history-number';
+    number.textContent = String(item.id).padStart(2,'0');
+    const text = document.createElement('span');
+    text.className = 'history-text';
+    text.textContent = item.text;
+    const duration = document.createElement('span');
+    duration.className = 'history-duration';
+    duration.textContent = item.duration;
+    select.append(number,text,duration);
+    select.addEventListener('click', () => showResult(item,true));
+    const download = document.createElement('a');
+    download.className = 'history-download';
+    download.textContent = '下载';
+    download.setAttribute('aria-label', `下载第 ${item.id} 条音频`);
+    download.href = item.download;
+    download.download = item.filename;
+    row.append(select,download);
+    $('historyList').appendChild(row);
+  }
+}
+async function generate() {
+  if (busy || !ready) return;
+  let payload;
+  try {payload = requestPayload();} catch (error) {message(error.message,true); return;}
+  busy = true;
+  syncGenerate();
+  message('正在生成…');
+  try {
+    const response = await fetch('/api/generate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    if (!response.ok) {
+      let detail = '生成失败，请重试。';
+      try {const data = await response.json(); if (typeof data.error === 'string') detail = data.error;} catch (_) {}
+      throw new Error(detail);
+    }
+    const blob = await response.blob();
+    if (!blob.size) throw new Error('未收到音频，请重试。');
+    const url = URL.createObjectURL(blob);
+    const result = {id:++serial, text:payload.text, url, download:safeAudioURL(response.headers.get('X-Audio-URL'),url), filename:filenameFrom(response.headers.get('X-Output')), duration:seconds(response.headers.get('X-Duration')), elapsed:seconds(response.headers.get('X-Elapsed')), seed:response.headers.get('X-Seed') || '—'};
+    if (currentResult && !recent.includes(currentResult)) URL.revokeObjectURL(currentResult.url);
+    recent.unshift(result);
+    const removed = recent.splice(5);
+    showResult(result,true);
+    removed.forEach(item => URL.revokeObjectURL(item.url));
+    message('生成完成。');
+  } catch (error) {
+    message(error instanceof TypeError ? '连接失败，请重试。' : error.message,true);
+  } finally {
+    busy = false;
+    syncGenerate();
+    refreshStatus();
+  }
+}
+function activateTab(tab) {
+  if (!tab) return;
+  document.querySelectorAll('[role="tab"]').forEach(item => {
+    const selected = item === tab;
+    item.setAttribute('aria-selected',String(selected));
+    item.tabIndex = selected ? 0 : -1;
+    $(item.dataset.panel).hidden = !selected;
+  });
+}
+$('text').addEventListener('input',syncText);
+$('text').addEventListener('keydown',event => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {event.preventDefault(); generate();}
+});
+$('generate').addEventListener('click',generate);
+$('clearText').addEventListener('click',() => {$('text').value = ''; syncText(); $('text').focus();});
+$('settingsPanel').addEventListener('input',() => {settingsTouched = true;});
+$('language').addEventListener('change',() => {settingsTouched = true;});
+$('tokens').addEventListener('input',() => {settingsTouched = true;});
+for (const id of ['doSample','subDoSample','instructEnabled','f0Enabled','outMode']) $(id).addEventListener('change',syncParameters);
+$('resetSettings').addEventListener('click',() => {settingsTouched = true; applyDefaults();});
+$('randomSeed').addEventListener('click',() => {settingsTouched = true; $('seed').value = -1;});
+document.querySelectorAll('[data-instruct]').forEach(button => button.addEventListener('click',() => {settingsTouched = true; $('instruct').value = button.dataset.instruct;}));
+document.querySelectorAll('[role="tab"]').forEach(tab => {
+  tab.addEventListener('click',() => activateTab(tab));
+  tab.addEventListener('keydown',event => {
+    const tabs = [...document.querySelectorAll('[role="tab"]')];
+    let index = tabs.indexOf(tab);
+    if (event.key === 'ArrowRight') index = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') index = (index + tabs.length - 1) % tabs.length;
+    else if (event.key === 'Home') index = 0;
+    else if (event.key === 'End') index = tabs.length - 1;
+    else return;
+    event.preventDefault(); activateTab(tabs[index]); tabs[index].focus();
+  });
+});
+$('clearHistory').addEventListener('click',() => {
+  recent.forEach(item => {if (item !== currentResult) URL.revokeObjectURL(item.url);});
+  recent = [];
+  renderHistory();
+});
+window.addEventListener('pagehide',event => {
+  if (event.persisted) return;
+  new Set([...recent,currentResult].filter(Boolean).map(item => item.url)).forEach(url => URL.revokeObjectURL(url));
+});
+syncParameters();
+syncText();
+refreshStatus();
+setInterval(refreshStatus,10000);
+</script>
+</body>
+</html>
