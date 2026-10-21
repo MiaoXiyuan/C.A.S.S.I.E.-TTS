@@ -1,5 +1,8 @@
 # C.A.S.S.I.E. Voice LoRA · V1.0.0
 
+Tips：个站文章https://www.miaoxiyuan.com/cassie-tts-voice-shaping
+写文能力差，让Gemini润色结果用力过猛了…
+
 C.A.S.S.I.E.（Central Autonomic Service System for Internal Emergencies，内部紧急情况中央自主服务系统）风格的 Qwen3-TTS LoRA，用于本地设施广播语音生成。公开包与推理 WebUI 的软件发布版本为 **V1.0.0**。模型版本为 **CustomVoice · C.A.S.S.I.E. v1 · s0.3**，服务中的模型 id 为 `v1_s03`。
 
 本仓库仅用于推理，提供导出与推理代码、WebUI，以及 LoRA 配置和权重元数据。**最终 LoRA 权重和 CustomVoice 导出必需的 speaker embedding 通过 [GitHub Releases](https://github.com/MiaoXiyuan/C.A.S.S.I.E.-TTS/releases) 单独分发，不纳入 Git；克隆仓库或下载源码 ZIP 不包含这两份权重。** 使用者需要先下载两份 Release 权重与基座模型，再在本地导出一次 CustomVoice。
