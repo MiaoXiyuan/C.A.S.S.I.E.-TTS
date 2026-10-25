@@ -1,6 +1,6 @@
 # Upstream license copies
 
-本目录保存上游许可证原文及历史来源记录；本项目的适用范围见根目录 [NOTICE](../NOTICE)。代码仓库提供推理、导出、WebUI 相关代码及配置、元数据，不包含训练、数据处理或评估工具，也不包含两份 `.safetensors` 权重。权重通过对应 **V1.0.0** 的 [GitHub Release](https://github.com/MiaoXiyuan/C.A.S.S.I.E.-TTS/releases) 单独分发，首次使用需手工下载并放回指定路径，见 [lora/README.md](../lora/README.md#使用)。保留这些许可副本用于说明权重的来源，不表示对应训练实现或第三方工具随包分发。
+本目录保存上游许可证原文及历史来源记录；本项目的适用范围见根目录 [NOTICE](../NOTICE)。代码仓库提供推理、导出、WebUI 相关代码及配置、元数据，不包含训练、数据处理或评估工具，也不包含两份 `.safetensors` 权重。当前模型为 **`v3_e04_s08`（v3、第4轮、scale 0.8）**，软件版本为 **V1.5.0**。权重通过注明对应模型 id 的 [GitHub Release](https://github.com/MiaoXiyuan/C.A.S.S.I.E.-TTS/releases) 单独分发，首次使用需手工下载并校验 SHA-256、放回指定路径，见 [lora/README.md](../lora/README.md#使用)。保留这些许可副本用于说明权重的来源，不表示对应训练实现或第三方工具随包分发。
 
 | 文件 | 上游及原文来源 | 范围 |
 |---|---|---|

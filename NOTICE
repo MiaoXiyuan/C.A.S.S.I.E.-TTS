@@ -1,5 +1,7 @@
 C.A.S.S.I.E. Voice LoRA
-CustomVoice · C.A.S.S.I.E. v1 · s0.3
+Software package / WebUI: V1.5.0
+Current model: CustomVoice · C.A.S.S.I.E. v3 · epoch 4 · scale 0.8
+Model ID: v3_e04_s08
 
 License scope
 =============
@@ -31,13 +33,29 @@ code, source recordings, or other upstream material. Files under lora/ other
 than the two weight files above follow their stated code/documentation license.
 
 Suggested attribution for the released weights:
-  CustomVoice · C.A.S.S.I.E. v1 · s0.3, by the C.A.S.S.I.E. Voice LoRA
+  CustomVoice · C.A.S.S.I.E. v3 · epoch 4 · scale 0.8, by the C.A.S.S.I.E. Voice LoRA
   contributors, CC BY-SA 3.0. Fine-tuned from Qwen3-TTS using C.A.S.S.I.E.
   recordings obtained through Convex89524/C.A.S.S.I.E; upstream credits below.
 
 This suggested wording does not add conditions to either license. Redistributors
 should retain applicable attribution, license references and modification notices
 as required by the license governing the material they distribute.
+
+Current model selection
+=======================
+
+The current original, unscaled adapter and speaker embedding come from v3's
+checkpoint-epoch-3 (epoch_index 3, epoch_number 4). Its validation loss is
+2.5563672079759487. The model was selected by listening preference, balancing
+the target voice and word-to-word continuity; it is not the full-run validation
+best checkpoint (epoch 9, approximately 2.4813). Validation sets differ between
+model generations, so validation loss is not used as a cross-version percentage
+measure of voice quality.
+
+Public provenance is recorded in lora/checkpoint_meta.json without local
+absolute paths. The released adapter is not pre-scaled. Local CustomVoice export
+applies scale 0.8 once before merging into the original Base; inference loads
+that merged model without applying another adapter or another scale factor.
 
 Qwen3-TTS
 =========
@@ -76,9 +94,12 @@ Source: https://github.com/instavar/qwen3-tts-lora-finetuning
 License: Apache-2.0; upstream copy: licenses/Instavar-Apache-2.0.txt
 Patch: https://github.com/instavar/qwen3-tts-lora-finetuning/blob/main/patches/0001-qwen3-tts-lora.patch
 
-Credit to Instavar and the project's contributors for the corrected text
-projection, manual codec-0 loss and next-token sub-talker alignment referenced
-during training of the released adapter. This is a historical provenance credit;
+Credit to Instavar and the project's contributors for the text projection,
+manual codec-0 loss and sub-talker training workflow referenced during model
+development. The project's subsequent correction computes cross-entropy
+directly for the already aligned c1 through c15 logits and targets, avoiding a
+second label shift in the generic causal loss; training, validation and
+per-epoch evaluation use the same correction. This is a provenance credit;
 the patch and local training implementations are not included in this package.
 The upstream license copy and Qwen notices remain available for that provenance.
 

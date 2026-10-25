@@ -1,9 +1,8 @@
-# C.A.S.S.I.E. Voice LoRA · V1.0.0
+# C.A.S.S.I.E. Voice LoRA · V1.5.0
 
-Tips：个站文章https://www.miaoxiyuan.com/cassie-tts-voice-shaping
-写文能力差，让Gemini润色结果用力过猛了…
+个人网站文章，包含研究记录: [让 C.A.S.S.I.E. 听起来像 C.A.S.S.I.E.：Qwen3-TTS 语音塑形实验](https://www.miaoxiyuan.com/cassie-tts-voice-shaping)
 
-C.A.S.S.I.E.（Central Autonomic Service System for Internal Emergencies，内部紧急情况中央自主服务系统）风格的 Qwen3-TTS LoRA，用于本地设施广播语音生成。公开包与推理 WebUI 的软件发布版本为 **V1.0.0**。模型版本为 **CustomVoice · C.A.S.S.I.E. v1 · s0.3**，服务中的模型 id 为 `v1_s03`。
+C.A.S.S.I.E.（Central Autonomic Service System for Internal Emergencies，内部紧急情况中央自主服务系统）风格的 Qwen3-TTS LoRA，用于本地设施广播语音生成。公开包与推理 WebUI 的软件版本为 **V1.5.0**；软件版本与模型代际分别标注。当前唯一默认模型为 **CustomVoice · C.A.S.S.I.E. v3 · 第4轮 · s0.8**，模型 id 为 `v3_e04_s08`。更新记录见 [CHANGELOG](CHANGELOG.md)。
 
 本仓库仅用于推理，提供导出与推理代码、WebUI，以及 LoRA 配置和权重元数据。**最终 LoRA 权重和 CustomVoice 导出必需的 speaker embedding 通过 [GitHub Releases](https://github.com/MiaoXiyuan/C.A.S.S.I.E.-TTS/releases) 单独分发，不纳入 Git；克隆仓库或下载源码 ZIP 不包含这两份权重。** 使用者需要先下载两份 Release 权重与基座模型，再在本地导出一次 CustomVoice。
 
@@ -20,7 +19,7 @@ C.A.S.S.I.E.（Central Autonomic Service System for Internal Emergencies，内�
 │   │   ├── adapter_config.json
 │   │   └── adapter_model.safetensors  # 从 Releases 下载，不纳入 Git
 │   ├── speaker_embedding.safetensors # 从 Releases 下载，不纳入 Git
-│   ├── best_meta.json             # 权重元数据
+│   ├── checkpoint_meta.json       # 脱敏后的来源、轮次、scale 与选择依据
 │   └── README.md
 ├── scripts/
 │   ├── check_env.py               # 环境检查
@@ -38,6 +37,7 @@ C.A.S.S.I.E.（Central Autonomic Service System for Internal Emergencies，内�
 ├── LICENSE-WEIGHTS               # CC BY-SA 3.0：两份发布权重
 ├── NOTICE                        # 许可范围、来源与版权声明
 ├── licenses/                     # 上游许可原文
+├── CHANGELOG.md                  # 模型更新记录；与软件版本分别说明
 ├── README.md
 ├── requirements.txt
 └── .gitignore
@@ -85,14 +85,23 @@ PyTorch 需与本机 CUDA 环境匹配。`pyworld` 用于可选 F0 后处理，�
 
 ### 2. 从 Releases 下载 LoRA 权重
 
-进入本项目的 [GitHub Releases](https://github.com/MiaoXiyuan/C.A.S.S.I.E.-TTS/releases)，选择与代码版本对应的发布（当前为 **V1.0.0**），下载以下两个附件，并按下表放入项目目录。GitHub 自动生成的 Source code ZIP／tar.gz 不包含这些附件。
+进入本项目的 [GitHub Releases](https://github.com/MiaoXiyuan/C.A.S.S.I.E.-TTS/releases)，选择注明模型 **`v3_e04_s08`（v3、第4轮、scale 0.8）** 的发布，下载以下两个附件，并按下表放入项目目录。软件 V1.5.0 与模型 v3 是两套编号，请同时核对模型 id 和下面的 SHA-256；旧 v1／S0.3 附件不能与本次配置混用。GitHub 自动生成的 Source code ZIP／tar.gz 不包含权重附件。
 
-| Release 附件 | 本地放置路径（相对项目根目录） | V1.0.0 文件大小 |
+| Release 附件 | 本地放置路径（相对项目根目录） | `v3_e04_s08` 文件大小 |
 |---|---|---|
 | `adapter_model.safetensors` | `lora/adapter/adapter_model.safetensors` | 77,004,832 字节 |
 | `speaker_embedding.safetensors` | `lora/speaker_embedding.safetensors` | 4,192 字节 |
 
-**两份文件都必需。** speaker embedding 只有约 4KB，这是正常大小。保留仓库中的 `lora/adapter/adapter_config.json` 和 `lora/best_meta.json`，无需替换。两份权重已加入 `.gitignore`，下载后仅供本地导出使用。
+**两份文件都必需。** speaker embedding 只有约 4KB，这是正常大小。保留本次代码仓库中的 `lora/adapter/adapter_config.json` 和 `lora/checkpoint_meta.json`。两份权重已加入 `.gitignore`，下载后仅供本地导出使用；它们是原始、未经预缩放的 LoRA 和本 checkpoint 的 speaker embedding。
+
+SHA-256（新旧 adapter 文件大小相同，不能仅凭大小辨认版本）：
+
+```text
+60C6A0B40097B03E0C5B4639F88541747D112482BA948D791580DF022AE0EB33  adapter_model.safetensors
+36FFE123AF88C5D6BC5C3B6A09EF28A666020227440035A1D94486A49AA21DBF  speaker_embedding.safetensors
+```
+
+维护者本地准备的新附件位于已忽略的 `releases/v3_e04_s08/`；该目录不是运行依赖，也不随源码提交。旧发布产物保持独立保留。
 
 ### 3. 下载基座模型
 
@@ -108,21 +117,25 @@ python scripts/download_models.py
 
 Base 目录已包含导出与推理需要的 `speech_tokenizer/`，无需另行下载独立的 `Qwen3-TTS-Tokenizer-12Hz`。`--repo base` 保留兼容；脚本只支持下载 Base，**不会下载上述 LoRA 或 speaker embedding，二者需从 Releases 手工获取**。基座由使用者自行获取，不会打包进本项目。
 
-### 4. 导出 CustomVoice S0.3
+### 4. 导出 CustomVoice v3 · 第4轮 · s0.8
 
 确认两份 Release 权重和 Base 均已下载到上述位置，再执行导出：
 
 ```text
-python scripts/export_custom_voice.py --checkpoint lora --output outputs/cassie_custom_voice_s03 --base models/Qwen3-TTS-12Hz-1.7B-Base --speaker cassie --speaker-id 3000 --lora-scale 0.3 --device cuda:0
+python scripts/export_custom_voice.py --checkpoint lora --output outputs/cassie_custom_voice_v3_e04_s08 --base models/Qwen3-TTS-12Hz-1.7B-Base --speaker cassie --speaker-id 3000 --lora-scale 0.8 --device cuda:0
 ```
 
-上述 checkpoint、output、base、speaker、speaker id、scale 和 device 也是脚本默认值，因此在默认目录布局下可直接运行：
+上述 checkpoint、output、base、speaker、speaker id、scale 和 device 也是脚本默认值，因此在默认目录布局下可直接运行，PyCharm 无参数运行同样导出本次模型：
 
 ```text
 python scripts/export_custom_voice.py
 ```
 
-导出会在 `outputs/cassie_custom_voice_s03/` 写入完整模型（`model.safetensors` 约 3.83GB）、tokenizer、speech tokenizer 和导出元数据。过程不修改 `lora/` 或基座目录。输出目录非空时默认拒绝覆盖；确认需要重新导出后才使用 `--overwrite`。
+导出会在 `outputs/cassie_custom_voice_v3_e04_s08/` 写入完整模型（`model.safetensors` 约 3.83GB）、tokenizer、speech tokenizer 和导出元数据。导出器读取本次 `lora/checkpoint_meta.json`，使用本 checkpoint 的 speaker embedding，并在原始 Base 上对原始 adapter **只应用一次 scale 0.8，再执行合并**。过程不修改 `lora/` 或基座目录。输出目录非空时默认拒绝覆盖；确认需要重新导出后才使用 `--overwrite`。
+
+合并后的 CustomVoice 已含 0.8 的效果，服务直接加载它；推理时不再叠加 adapter，也不再次乘 0.8。
+
+导出前会核对两份权重的 SHA-256，并要求 `--lora-scale` 与本次 checkpoint 元数据中的 0.8 一致，避免其他权重或 scale 被标记为 `v3_e04_s08`。
 
 导出元数据 `custom_voice_meta.json` 会记录本机实际输入路径，仅供本地追踪，不作为公开文件提交。合并模型也只用于本地推理。
 
@@ -132,7 +145,7 @@ python scripts/export_custom_voice.py
 python scripts/serve_custom_voice.py
 ```
 
-默认加载 `outputs/cassie_custom_voice_s03/`，自动打开 [http://127.0.0.1:7860](http://127.0.0.1:7860)。生成的 WAV 保存在 `outputs/web_ui/`。
+默认加载 `outputs/cassie_custom_voice_v3_e04_s08/`，自动打开 [http://127.0.0.1:7860](http://127.0.0.1:7860)。PyCharm 无参数运行也加载 `v3_e04_s08`。生成的 WAV 保存在 `outputs/web_ui/`。
 
 指定端口并关闭自动打开浏览器：
 
@@ -147,7 +160,7 @@ python scripts/serve_custom_voice.py --port 7861 --no-browser
 | 内容 | 位置 |
 |---|---|
 | 推理生成的 WAV 音频 | `outputs/web_ui/` |
-| 本地导出的 CustomVoice 模型 | `outputs/cassie_custom_voice_s03/` |
+| 本地导出的 CustomVoice 模型 | `outputs/cassie_custom_voice_v3_e04_s08/` |
 | 自行下载的 Base 模型 | `models/Qwen3-TTS-12Hz-1.7B-Base/` |
 
 WebUI 与 HTTP API 生成的音频都保存在 `outputs/web_ui/`；网页下载的是同一份已保存的 WAV。刷新页面或清空页面历史不会删除磁盘音频，服务也不会自动清理这些文件，可按需自行删除。
@@ -158,22 +171,28 @@ WebUI 与 HTTP API 生成的音频都保存在 `outputs/web_ui/`；网页下载�
 
 | 项目 | 值 |
 |---|---|
-| 发布版本 | CustomVoice · C.A.S.S.I.E. v1 · s0.3 |
-| 模型 id | `v1_s03`（唯一支持的模型） |
+| 当前模型 | CustomVoice · C.A.S.S.I.E. v3 · 第4轮 · s0.8 |
+| 模型 id | `v3_e04_s08`（唯一支持的模型） |
 | 基座 | `Qwen/Qwen3-TTS-12Hz-1.7B-Base` |
 | LoRA | r=16，alpha=32，dropout=0.05 |
 | target modules | `q_proj`、`k_proj`、`v_proj`、`o_proj`、`gate_proj`、`up_proj`、`down_proj` |
-| 最佳 epoch | 4 |
-| 验证 loss | 3.2866 |
-| 导出 scale | 0.3 |
+| 来源 checkpoint | `cassie_lora_v3/checkpoint-epoch-3` |
+| 所选轮次 | `epoch_index=3`、`epoch_number=4`（第4轮） |
+| 所选轮次验证 loss | 2.5563672079759487 |
+| 选择依据 | 实际试听首选，兼顾目标声音与词间连贯性 |
+| 导出 scale | 0.8（导出时应用一次） |
 | speaker | `cassie`，id 3000 |
 | 音频 | 24kHz，单声道 WAV |
 
 `lora/adapter/` 是 PEFT 格式的 LoRA 增量权重；`lora/speaker_embedding.safetensors` 是 2048 维说话人向量。导出 CustomVoice 时两者都需要。speaker id `3000` 是本项目的导出约定。
 
+本次选择不是全程验证 loss 最低的 checkpoint。v3 全程最低验证 loss 出现在第9轮，约为 2.4813；当前默认采用试听选定的第4轮，而不是 `best`、`checkpoint-epoch-4` 或第10轮×0.6 备选。各模型版本使用的验证集不同，不将 loss 直接横比或换算成音质提升百分比。
+
 ## WebUI 参数
 
 页面仅提供单模型 CustomVoice，不需要参考音频。
+
+状态栏仅显示“C.A.S.S.I.E. TTS 模型版本: v3”；实际使用的模型仍为 `v3_e04_s08`，精确轮次与 scale 见上面的模型信息和 `lora/checkpoint_meta.json`。
 
 主界面用于输入、生成、试听和下载，文本默认留空并实时显示字符数；“最大生成 Token”位于语言选择旁。其他参数设置默认折叠，按“采样”“风格指令”“音高处理”分组；“恢复默认”会同时关闭 Prompt 和输出 F0。
 
@@ -183,17 +202,19 @@ WebUI 与 HTTP API 生成的音频都保存在 `outputs/web_ui/`；网页下载�
 
 | 控制项 | 默认值 | 说明 |
 |---|---|---|
-| 模型 | `v1_s03` | 仅有最终 S0.3 |
-| 语言 | `Auto` | 由模型判断；其他语言效果需自行验证 |
+| 模型 | `v3_e04_s08` | 仅有最终 v3、第4轮、s0.8 |
+| 语言 | `English` | 默认英文；保留其他语言选择，效果需自行验证 |
 | Prompt / instruct | 关闭、空字符串 | 实验性风格指令；启用后才提交文本 |
 | temperature / top_p / top_k | 0.5 / 0.8 / 30 | 主码本采样；更高随机性可能降低稳定性 |
 | subtalker temperature / top_p / top_k | 0.8 / 0.9 / 30 | 后续子码本采样 |
 | repetition_penalty | 1.05 | 重复惩罚 |
-| 最大生成 Token / `max_new_tokens` | 768 | 主界面可调，范围 64–2048；生成长度上限，不足时可能截断 |
-| seed | -1 | -1 每次随机；固定整数用于同环境复现 |
+| 最大生成 Token / `max_new_tokens` | 512 | 主界面可调，范围 64–2048；生成长度上限，不足时可能截断 |
+| seed | -1 | 默认每次随机；可调整为固定整数，用于同环境复现 |
 | 输出 F0 | 关闭，pitch=0 | 使用 WORLD 对生成结果做后处理 |
 
 输出 F0 的 `pitch` 以半音为单位；`mode` 支持 `off`、`flat`（压平）、`limited`（围绕中位音高限幅）、`quantized`（音高量化）。`limit` 是限幅半径（默认 1 半音），`step` 是量化步长（默认 1.5 半音）。`off` 且 `pitch=0` 才完全不处理。
+
+本次模型验收使用 **seed=20261025、max_new_tokens=512**。这是固定种子的验收条件，不是日常生成默认值；需要复现该条件时请显式设置 seed。
 
 服务启动参数与页面采样项对应，参数名使用连字符，例如 `--temperature`、`--top-p`、`--top-k`、`--subtalker-temperature`、`--max-new-tokens`、`--seed`。其他常用参数：
 
@@ -201,7 +222,7 @@ WebUI 与 HTTP API 生成的音频都保存在 `outputs/web_ui/`；网页下载�
 |---|---|---|
 | `--host` | `127.0.0.1` | 监听地址 |
 | `--port` | `7860` | HTTP 端口 |
-| `--model` | `v1_s03` | 仅支持此模型 id |
+| `--model` | `v3_e04_s08` | 仅支持此模型 id |
 | `--device` | `cuda:0` | 推理设备 |
 | `--speaker` | `cassie` | 导出模型中的 speaker 名称 |
 | `--no-browser` | 未启用 | 不自动打开浏览器 |
@@ -212,18 +233,19 @@ WebUI 与 HTTP API 生成的音频都保存在 `outputs/web_ui/`；网页下载�
 
 ### `GET /api/status`
 
-返回引擎状态、唯一模型 `v1_s03` 的信息、可用语言和采样默认值。模型目录以项目相对路径返回；没有参考音频字段。
+返回引擎状态、唯一模型 `v3_e04_s08` 的信息、可用语言和采样默认值。模型目录以项目相对路径返回；没有参考音频字段。
 
 ### `POST /api/generate`
 
-请求体必须为 JSON 对象，大小不得超过 1 MB。`text` 是必填的非空字符串；其余字段可省略。默认模型为 `v1_s03`，语言为 `Auto`，`instruct` 为空，输出 F0 关闭。
+请求体必须为 JSON 对象，大小不得超过 1 MB。`text` 是必填的非空字符串；其余字段可省略。默认模型为 `v3_e04_s08`，语言为 `English`，seed 为 `-1`（每次随机），`instruct` 为空，输出 F0 关闭。
 
 ```json
 {
   "text": "Security alert. Chaos insurgency spotted at gate A.",
-  "model": "v1_s03",
-  "language": "Auto",
-  "seed": 20261018,
+  "model": "v3_e04_s08",
+  "language": "English",
+  "seed": -1,
+  "max_new_tokens": 512,
   "instruct": "",
   "temperature": 0.5,
   "top_p": 0.8,
@@ -294,11 +316,11 @@ assert downloaded == generated
 print("生成与下载成功：", len(downloaded), "bytes")
 ```
 
-`POST /api/select` 作为兼容接口接受 `{"model":"v1_s03"}`。非法 JSON 或参数返回 HTTP 400，不存在的资源返回 404，内部生成错误返回 500；错误响应为 JSON，内部错误信息不包含本机路径。
+`POST /api/select` 作为兼容接口接受 `{"model":"v3_e04_s08"}`。非法 JSON 或参数返回 HTTP 400，不存在的资源返回 404，内部生成错误返回 500；错误响应为 JSON，内部错误信息不包含本机路径。
 
 ## 已知限制
 
-- 只支持最终 S0.3，不包含其他 scale、official adapter 或实验性合并模型。
+- 当前默认只支持最终 `v3_e04_s08`，不混用旧 v1／S0.3、其他轮次或 scale；旧本地发布产物可独立保留。
 - 公开 WebUI 没有 ICL 参考音频和参考处理流程。
 - 当前模型未经过 instruction 微调，Prompt / instruct 效果不稳定，默认关闭。
 - F0 塑形是生成后的音频处理，可能引入音质变化，默认关闭。

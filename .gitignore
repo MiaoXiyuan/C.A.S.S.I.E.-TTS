@@ -5,6 +5,9 @@ models/
 /lora/adapter/adapter_model.safetensors
 /lora/speaker_embedding.safetensors
 
+# Local release packaging and assets.
+/releases/
+
 # Source audio, datasets and game assets are never part of this release.
 data/
 sources/

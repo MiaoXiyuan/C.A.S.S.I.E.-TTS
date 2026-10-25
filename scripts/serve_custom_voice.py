@@ -2,17 +2,22 @@
 
 This server serves the final LoRA export as a single CustomVoice model.
 It does not ship reference audio and does not expose ICL modes.
+The exported model already contains the epoch-4 adapter merged at scale 0.8.
+Inference only loads that CustomVoice export; no adapter or scale is reapplied.
 
 Runtime parameters:
     --host         Bind address (default: 127.0.0.1)
     --port         HTTP port (default: 7860)
-    --model        Model id from MODEL_REGISTRY (default: v1_s03)
+    --model        Model id from MODEL_REGISTRY (default: v3_e04_s08)
     --device       Torch device, e.g. cuda:0 or cpu
     --speaker      Speaker name stored in the exported CustomVoice model
     --no-browser   Do not open the WebUI automatically
 
+Generation defaults: English, random seed (-1), max_new_tokens 512.
+Language, seed and generation length remain adjustable through the API/WebUI.
+
 Data interface:
-    Model directory:  outputs/cassie_custom_voice_s03/
+    Model directory:  outputs/cassie_custom_voice_v3_e04_s08/
     Generated WAVs:   outputs/web_ui/
     WebUI document:   web/index.html
 
@@ -21,7 +26,7 @@ HTTP API:
     POST /api/generate  JSON body {text, model, language, seed, instruct,
                         sampling..., output_f0}; returns WAV
     GET  /api/audio/<name>  Retained WAV download (X-Audio-URL in generation response)
-    POST /api/select    Select v1_s03 (compatibility endpoint)
+    POST /api/select    Select v3_e04_s08 (compatibility endpoint)
 
 JSON errors: 400 invalid input, 404 unknown route/audio, 500 generation failure.
 No absolute model paths or raw exceptions are returned to clients.
@@ -62,7 +67,8 @@ from qwen_tts import Qwen3TTSModel  # noqa: E402
 
 from src.inference.f0 import process_f0  # noqa: E402
 
-# Public release: only the final CustomVoice S0.3 export is supported.
+# Public release: only the selected v3, epoch 4, scale 0.8 CustomVoice export.
+DEFAULT_LANGUAGE = "English"
 DEFAULT_OUTPUT_F0 = {
     "pitch": 0.0,
     "mode": "off",
@@ -83,17 +89,19 @@ LANGUAGES = [
     "Spanish",
     "Italian",
 ]
-EXPERIMENTAL_LANGUAGES = set(LANGUAGES) - {"Auto"}
+EXPERIMENTAL_LANGUAGES = set(LANGUAGES) - {"Auto", DEFAULT_LANGUAGE}
 
 MODEL_REGISTRY = [
     {
-        "id": "v1_s03",
-        "label": "CustomVoice · C.A.S.S.I.E. v1 · s0.3",
+        "id": "v3_e04_s08",
+        "label": "CustomVoice · C.A.S.S.I.E. v3 · 第4轮 · s0.8",
         "kind": "custom",
-        "family": "v1",
-        "family_label": "C.A.S.S.I.E. v1",
-        "scale": 0.3,
-        "path": ROOT / "outputs" / "cassie_custom_voice_s03",
+        "family": "v3",
+        "family_label": "C.A.S.S.I.E. v3",
+        "epoch_index": 3,
+        "epoch_number": 4,
+        "scale": 0.8,
+        "path": ROOT / "outputs" / "cassie_custom_voice_v3_e04_s08",
     }
 ]
 
@@ -200,7 +208,7 @@ class Engine:
     def load(self, model_id: str) -> None:
         matches = [m for m in self.models if m["id"] == model_id]
         if not matches:
-            raise RequestError("model 只支持 v1_s03")
+            raise RequestError("model 只支持 v3_e04_s08")
         model = matches[0]
         self._release()
         self._load_custom(model)
@@ -239,7 +247,7 @@ class Engine:
             "current_kind": self.current_kind,
             "speaker": self.args.speaker,
             "speakers": self.speakers,
-            "language_default": "Auto",
+            "language_default": DEFAULT_LANGUAGE,
             "languages": LANGUAGES,
             "experimental_languages": sorted(EXPERIMENTAL_LANGUAGES),
             "output_f0": self.output_f0,
@@ -332,6 +340,7 @@ class Engine:
             gen_kwargs = dict(
                 text=text,
                 language=language,
+                non_streaming_mode=True,
                 max_new_tokens=max_new_tokens,
                 do_sample=do_sample,
                 temperature=temperature,
@@ -378,7 +387,7 @@ class Engine:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "CustomVoiceUI/1.0.0"
+    server_version = "CustomVoiceUI/1.5.0"
     engine: Engine
 
     def log_message(self, fmt: str, *args) -> None:  # noqa: A003
@@ -470,7 +479,7 @@ class Handler(BaseHTTPRequestHandler):
             wav, sr, elapsed, model_id, output, actual_seed, output_f0 = self.engine.generate(
                 text=data.get("text", ""),
                 model_id=data.get("model", self.engine.current_id),
-                language=data.get("language", "Auto"),
+                language=data.get("language", DEFAULT_LANGUAGE),
                 max_new_tokens=data.get("max_new_tokens", self.engine.args.max_new_tokens),
                 temperature=data.get("temperature", self.engine.args.temperature),
                 top_p=data.get("top_p", self.engine.args.top_p),
@@ -504,7 +513,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("X-Mode", self.engine.current_kind)
             self.send_header("X-Output-F0", json.dumps(output_f0, ensure_ascii=False))
             self.send_header("X-Speaker", self.engine.args.speaker)
-            self.send_header("X-Language", data.get("language", "Auto"))
+            self.send_header("X-Language", data.get("language", DEFAULT_LANGUAGE))
             self.send_header("X-Sample-Rate", str(sr))
             self.send_header("X-Output", output)
             self.send_header("X-Audio-URL", f"/api/audio/{Path(output).name}")
@@ -556,12 +565,12 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=7860)
     parser.add_argument(
         "--model",
-        default="v1_s03",
+        default="v3_e04_s08",
         choices=[m["id"] for m in MODEL_REGISTRY],
     )
     parser.add_argument("--speaker", default="cassie")
     parser.add_argument("--device", default="cuda:0")
-    parser.add_argument("--max-new-tokens", type=int, default=768)
+    parser.add_argument("--max-new-tokens", type=int, default=512)
     parser.add_argument("--temperature", type=float, default=0.5)
     parser.add_argument("--top-p", type=float, default=0.8)
     parser.add_argument("--top-k", type=int, default=30)
@@ -587,7 +596,7 @@ def main() -> int:
     print("=" * 66, flush=True)
     print(f"C.A.S.S.I.E. CustomVoice UI: {url}", flush=True)
     print(f"models: {[m['id'] for m in engine.models]}", flush=True)
-    print(f"default: {engine.current_id} / speaker={args.speaker} / language=Auto", flush=True)
+    print(f"default: {engine.current_id} / speaker={args.speaker} / language={DEFAULT_LANGUAGE}", flush=True)
     print(f"sampling: {engine.sampling_defaults()}", flush=True)
     print("Press Ctrl+C to stop.", flush=True)
     print("=" * 66, flush=True)

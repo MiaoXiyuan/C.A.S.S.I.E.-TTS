@@ -1,0 +1,34 @@
+{
+  "model_id": "v3_e04_s08",
+  "model_generation": "v3",
+  "epoch_index": 3,
+  "epoch_number": 4,
+  "epoch_complete": true,
+  "global_step": 828,
+  "val_loss": 2.5563672079759487,
+  "conditioning_language": "English",
+  "base_model": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+  "lora_scale": 0.8,
+  "adapter_pre_scaled": false,
+  "selection": {
+    "method": "listening_preference",
+    "reason": "Primary listening choice balancing the target voice and continuity between words.",
+    "is_global_validation_best": false
+  },
+  "run_lowest_validation": {
+    "epoch_index": 8,
+    "epoch_number": 9,
+    "val_loss_rounded": 2.4813
+  },
+  "source_experiment": "cassie_lora_v3",
+  "source_checkpoint": "checkpoint-epoch-3",
+  "source_saved_utc": "2026-10-24T19:00:48.200856+00:00",
+  "weights_sha256": {
+    "adapter/adapter_model.safetensors": "60C6A0B40097B03E0C5B4639F88541747D112482BA948D791580DF022AE0EB33",
+    "speaker_embedding.safetensors": "36FFE123AF88C5D6BC5C3B6A09EF28A666020227440035A1D94486A49AA21DBF"
+  },
+  "source_file_sha256": {
+    "adapter/adapter_config.json": "54B79B95143B8341A4A397AB0781FCE944F5E3695459324A871D0D534F89D859",
+    "checkpoint_meta.json": "F530DB445FB9A4266F7D469BF03DD90928DBAE59A17DFB162C8B1F157AAF712E"
+  }
+}

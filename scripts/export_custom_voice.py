@@ -4,7 +4,7 @@ Input layout after downloading both GitHub Release weight assets:
     lora/adapter/adapter_config.json
     lora/adapter/adapter_model.safetensors
     lora/speaker_embedding.safetensors
-    lora/best_meta.json
+    lora/checkpoint_meta.json
     lora/README.md
 
 The lora/ directory in the source repository includes configuration, metadata
@@ -14,7 +14,7 @@ see README.md.
 The base model must also be downloaded separately by the user.
 
 The script:
-  * merges the LoRA at the requested scale (default 0.3 for the published model);
+  * merges the raw v3 epoch-4 LoRA once at scale 0.8 by default;
   * inserts the 2048-d speaker embedding into codec_embedding[spk_id];
   * switches config.tts_model_type to "custom_voice";
   * adds spk_id / spk_is_dialect entries;
@@ -26,15 +26,21 @@ It does not modify the base model, the adapter, or any external data.
 Usage:
     python scripts/export_custom_voice.py \
         --checkpoint lora \
-        --output outputs/cassie_custom_voice_s03 \
+        --output outputs/cassie_custom_voice_v3_e04_s08 \
         --base models/Qwen3-TTS-12Hz-1.7B-Base \
-        --speaker cassie --speaker-id 3000 --lora-scale 0.3
+        --speaker cassie --speaker-id 3000 --lora-scale 0.8
+
+The merged CustomVoice already includes this scale. Inference must load only
+the exported model, without attaching the adapter or applying the scale again.
+The scale must match checkpoint_meta.json so another scale cannot be labeled
+as this published model id.
 """
 
 from __future__ import annotations
 
 import argparse
 import gc
+import hashlib
 import json
 import shutil
 import sys
@@ -64,20 +70,49 @@ COPY_FILES = [
 ]
 
 
-def set_lora_scale(model, scale: float) -> None:
+def set_lora_scale(model, scale: float) -> int:
+    """Set the multiplier relative to alpha/r, without changing adapter files."""
+    count = 0
     for module in model.modules():
         if isinstance(module, LoraLayer):
             module.set_scale("default", scale)
+            count += 1
+    return count
+
+
+def load_checkpoint_metadata(ckpt: Path) -> tuple[dict, dict[str, str]]:
+    """Require portable selection metadata and verify the raw release assets."""
+    path = ckpt / "checkpoint_meta.json"
+    if not path.is_file():
+        raise SystemExit("missing checkpoint_meta.json; use the v3 epoch-4 release metadata")
+    meta = json.loads(path.read_text(encoding="utf-8"))
+    required = {"model_id", "epoch_index", "epoch_number", "lora_scale", "weights_sha256"}
+    if not isinstance(meta, dict) or not required.issubset(meta):
+        raise SystemExit("checkpoint_meta.json is missing release provenance fields")
+    if meta["epoch_number"] != meta["epoch_index"] + 1:
+        raise SystemExit("checkpoint metadata has inconsistent epoch numbering")
+    if meta.get("adapter_pre_scaled") is not False:
+        raise SystemExit("release weights must be raw, unscaled LoRA weights")
+    hashes = {}
+    for name in ("adapter/adapter_model.safetensors", "speaker_embedding.safetensors"):
+        weight_path = ckpt / name
+        if not weight_path.is_file():
+            raise SystemExit(f"missing Release weight: {name}; download both assets as described in README.md")
+        digest = hashlib.sha256(weight_path.read_bytes()).hexdigest()
+        if digest != str(meta["weights_sha256"].get(name, "")).lower():
+            raise SystemExit(f"Release weight SHA-256 mismatch: {name}")
+        hashes[name] = digest
+    return meta, hashes
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", default="lora")
-    parser.add_argument("--output", default="outputs/cassie_custom_voice_s03")
+    parser.add_argument("--output", default="outputs/cassie_custom_voice_v3_e04_s08")
     parser.add_argument("--base", default="models/Qwen3-TTS-12Hz-1.7B-Base")
     parser.add_argument("--speaker", default="cassie")
     parser.add_argument("--speaker-id", type=int, default=3000)
-    parser.add_argument("--lora-scale", type=float, default=0.3)
+    parser.add_argument("--lora-scale", type=float, default=0.8)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
@@ -92,6 +127,9 @@ def main() -> int:
     adapter_dir = ckpt / "adapter"
     if not adapter_dir.is_dir():
         raise SystemExit(f"missing adapter dir: {adapter_dir}")
+    checkpoint_meta, source_weight_hashes = load_checkpoint_metadata(ckpt)
+    if args.lora_scale != float(checkpoint_meta["lora_scale"]):
+        parser.error("--lora-scale must match the published scale in checkpoint_meta.json")
     if out.exists() and any(out.iterdir()) and not args.overwrite:
         raise SystemExit(f"output directory is not empty: {out} (use --overwrite)")
     out.mkdir(parents=True, exist_ok=True)
@@ -102,9 +140,6 @@ def main() -> int:
     if free_gb < 8:
         raise SystemExit("not enough free disk space (need ~5 GB for export)")
 
-    best_meta = {}
-    if (ckpt / "best_meta.json").is_file():
-        best_meta = json.loads((ckpt / "best_meta.json").read_text(encoding="utf-8"))
     speaker_payload = load_file(str(ckpt / "speaker_embedding.safetensors"))
     speaker_embedding = speaker_payload["target_speaker_embedding"]
     if speaker_embedding.ndim != 1 or speaker_embedding.numel() != 2048:
@@ -120,7 +155,9 @@ def main() -> int:
         attn_implementation="sdpa",
     )
     peft_model = PeftModel.from_pretrained(tts.model, str(adapter_dir))
-    set_lora_scale(peft_model, float(args.lora_scale))
+    lora_layers_merged = set_lora_scale(peft_model, float(args.lora_scale))
+    if not lora_layers_merged:
+        raise SystemExit("no LoRA layers were loaded")
     merged = peft_model.merge_and_unload()
     merged.eval()
     print("merged")
@@ -176,13 +213,19 @@ def main() -> int:
 
     meta = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
+        "model_id": checkpoint_meta["model_id"],
         "source_checkpoint": str(ckpt),
         "source_adapter": str(adapter_dir),
         "base_model": str(base),
         "speaker": args.speaker,
         "speaker_id": int(args.speaker_id),
         "lora_scale": float(args.lora_scale),
-        "best_meta": best_meta,
+        "checkpoint_meta": checkpoint_meta,
+        "source_weights_sha256": source_weight_hashes,
+        "adapter_pre_scaled": False,
+        "lora_merged": True,
+        "lora_scale_applications": 1,
+        "lora_layers_merged": lora_layers_merged,
         "speaker_encoder_weights_removed": skipped,
         "state_tensors": n_tensors,
         "files": {},
